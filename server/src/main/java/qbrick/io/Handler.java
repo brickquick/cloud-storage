@@ -1,4 +1,4 @@
-package qbrick;
+package qbrick.io;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.OutputStream;
