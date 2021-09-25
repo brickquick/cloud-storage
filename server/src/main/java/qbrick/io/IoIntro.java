@@ -1,4 +1,4 @@
-package qbrick;
+package qbrick.io;
 
 import java.io.*;
 
@@ -39,7 +39,8 @@ public class IoIntro {
         System.out.println(ioIntro.readAsString("Hello.txt"));
         ioIntro.createServerDir("root");
         ioIntro.transfer(
-                new File("C:\\Users\\dmr\\Desktop\\GBtut\\Разработка сетевого хранилища на Java\\cloud-storage\\server\\src\\main\\resources\\qbrick\\Hello.txt"),
+                new File(
+                        "C:\\Users\\dmr\\Desktop\\GBtut\\Разработка сетевого хранилища на Java\\cloud-storage\\server\\src\\main\\resources\\qbrick\\Hello.txt"),
                 new File(ROOT_DIR + "copy.txt")
         );
     }
