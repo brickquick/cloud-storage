@@ -15,6 +15,7 @@ public class EchoHandler extends SimpleChannelInboundHandler<String> {
         cnt++;
         name = "user#" + cnt;
         log.debug("Client {} connected!", name);
+        ctx.writeAndFlush(String.format("[%s]: %s", "Server", "connected successfully"));
     }
 
     @Override

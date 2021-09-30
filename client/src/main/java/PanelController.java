@@ -22,124 +22,124 @@ import java.time.format.DateTimeFormatter;
 import java.util.ResourceBundle;
 import java.util.stream.Collectors;
 
-public class PanelController implements Initializable {
-
-    @FXML
-    TableView<FileInfo> filesTable;
-    @FXML
-    ComboBox<String> disksBox;
-    @FXML
-    TextField pathField;
-
-
-    private static String ROOT_DIR = "client/root";
-
-    @Override
-    public void initialize(URL location, ResourceBundle resources) {
-        TableColumn<FileInfo, String> fileTypeColumn = new TableColumn<>();
-        fileTypeColumn.setCellValueFactory(param -> new SimpleStringProperty(param.getValue().getType().getName()));
-        fileTypeColumn.setPrefWidth(24);
-
-        TableColumn<FileInfo, String> filenameColumn = new TableColumn<>("Имя");
-        filenameColumn.setCellValueFactory(param -> new SimpleStringProperty(param.getValue().getFilename()));
-        filenameColumn.setPrefWidth(240);
-
-        TableColumn<FileInfo, Long> fileSizeColumn = new TableColumn<>("Размер");
-        fileSizeColumn.setCellValueFactory(param -> new SimpleObjectProperty<>(param.getValue().getSize()));
-        fileSizeColumn.setCellFactory(column -> {
-            return new TableCell<FileInfo, Long>() {
-                @Override
-                protected void updateItem(Long item, boolean empty) {
-                    super.updateItem(item, empty);
-                    if (item == null || empty) {
-                        setText(null);
-                        setStyle("");
-                    } else {
-                        String text = String.format("%,d bytes", item);
-                        if (item == -1L) {
-                            text = "[DIR]";
-                        }
-                        setText(text);
-                    }
-                }
-            };
-        });
-        fileSizeColumn.setPrefWidth(120);
-
-        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-        TableColumn<FileInfo, String> fileDateColumn = new TableColumn<>("Дата изменения");
-        fileDateColumn.setCellValueFactory(param -> new SimpleStringProperty(param.getValue().getLastModified().format(dtf)));
-        fileDateColumn.setPrefWidth(120);
-        filesTable.getColumns().addAll(fileTypeColumn, filenameColumn, fileSizeColumn, fileDateColumn);
-        filesTable.getSortOrder().add(fileTypeColumn);
-
-        disksBox.getItems().clear();
-        for (Path p : FileSystems.getDefault().getRootDirectories()) {
-            disksBox.getItems().add(p.toString());
-        }
-        disksBox.getSelectionModel().select(0);
-
-        filesTable.setOnMouseClicked(new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent event) {
-                if (event.getClickCount() == 2) {
-                    Path path = Paths.get(pathField.getText()).resolve(filesTable.getSelectionModel().getSelectedItem().getFilename());
-                    if (Files.isDirectory(path)) {
-                        updateList(path);
-                    }
-                }
-            }
-        });
-
-        updateList(Paths.get(ROOT_DIR));
-
-//        try {
-//            fillFilesInCurrentDir();
-//            Socket socket = new Socket("localhost", 8189);
-//            os = new ObjectEncoderOutputStream(socket.getOutputStream());
-//            is = new ObjectDecoderInputStream(socket.getInputStream());
-//            Thread daemon = new Thread(() -> {
-//                try {
-//                    while (true) {
-//                        Command msg = (Command) is.readObject();
-//                        // TODO: 23.09.2021 Разработка системы команд
-//                        switch (msg.getType()) {
+//public class PanelController implements Initializable {
 //
+//    @FXML
+//    TableView<FileInfo> filesTable;
+//    @FXML
+//    ComboBox<String> disksBox;
+//    @FXML
+//    TextField pathField;
+//
+//
+//    private static String ROOT_DIR = "client/root";
+//
+//    @Override
+//    public void initialize(URL location, ResourceBundle resources) {
+//        TableColumn<FileInfo, String> fileTypeColumn = new TableColumn<>();
+//        fileTypeColumn.setCellValueFactory(param -> new SimpleStringProperty(param.getValue().getType().getName()));
+//        fileTypeColumn.setPrefWidth(24);
+//
+//        TableColumn<FileInfo, String> filenameColumn = new TableColumn<>("Имя");
+//        filenameColumn.setCellValueFactory(param -> new SimpleStringProperty(param.getValue().getFilename()));
+//        filenameColumn.setPrefWidth(240);
+//
+//        TableColumn<FileInfo, Long> fileSizeColumn = new TableColumn<>("Размер");
+//        fileSizeColumn.setCellValueFactory(paraam -> new SimpleObjectProperty<>(param.getValue().getSize()));
+//        fileSizeColumn.setCellFactory(column -> {
+//            return new TableCell<FileInfo, Long>() {
+//                @Override
+//                protected void updateItem(Long item, boolean empty) {
+//                    super.updateItem(item, empty);
+//                    if (item == null || empty) {
+//                        setText(null);
+//                        setStyle("");
+//                    } else {
+//                        String text = String.format("%,d bytes", item);
+//                        if (item == -1L) {
+//                            text = "[DIR]";
 //                        }
+//                        setText(text);
 //                    }
-//                } catch (Exception e) {
-//                    log.error("exception while read from input stream");
 //                }
-//            });
-//            daemon.setDaemon(true);
-//            daemon.start();
-//        } catch (IOException ioException) {
-//            log.error("e=", ioException);
+//            };
+//        });
+//        fileSizeColumn.setPrefWidth(120);
+//
+//        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+//        TableColumn<FileInfo, String> fileDateColumn = new TableColumn<>("Дата изменения");
+//        fileDateColumn.setCellValueFactory(param -> new SimpleStringProperty(param.getValue().getLastModified().format(dtf)));
+//        fileDateColumn.setPrefWidth(120);
+//        filesTable.getColumns().addAll(fileTypeColumn, filenameColumn, fileSizeColumn, fileDateColumn);
+//        filesTable.getSortOrder().add(fileTypeColumn);
+//
+//        disksBox.getItems().clear();
+//        for (Path p : FileSystems.getDefault().getRootDirectories()) {
+//            disksBox.getItems().add(p.toString());
 //        }
-    }
-
-    public void updateList(Path path) {
-        try {
-            pathField.setText(path.normalize().toAbsolutePath().toString());
-            filesTable.getItems().clear();
-            filesTable.getItems().addAll(Files.list(path).map(FileInfo::new).collect(Collectors.toList()));
-            filesTable.sort();
-        } catch (IOException e) {
-            Alert alert = new Alert(Alert.AlertType.WARNING, "По какой-то причине не удалось обновить список файлов", ButtonType.OK);
-            alert.showAndWait();
-        }
-    }
-
-    public void selectDiskAction(ActionEvent actionEvent) {
-        ComboBox<String> element = (ComboBox<String>) actionEvent.getSource();
-        updateList(Paths.get(element.getSelectionModel().getSelectedItem()));
-    }
-
-    public void btnPathUpAction(ActionEvent actionEvent) {
-        Path upperPath = Paths.get(pathField.getText()).getParent();
-        if (upperPath != null) {
-            updateList(upperPath);
-        }
-    }
-
-}
+//        disksBox.getSelectionModel().select(0);
+//
+//        filesTable.setOnMouseClicked(new EventHandler<MouseEvent>() {
+//            @Override
+//            public void handle(MouseEvent event) {
+//                if (event.getClickCount() == 2) {
+//                    Path path = Paths.get(pathField.getText()).resolve(filesTable.getSelectionModel().getSelectedItem().getFilename());
+//                    if (Files.isDirectory(path)) {
+//                        updateList(path);
+//                    }
+//                }
+//            }
+//        });
+//
+//        updateList(Paths.get(ROOT_DIR));
+//
+////        try {
+////            fillFilesInCurrentDir();
+////            Socket socket = new Socket("localhost", 8189);
+////            os = new ObjectEncoderOutputStream(socket.getOutputStream());
+////            is = new ObjectDecoderInputStream(socket.getInputStream());
+////            Thread daemon = new Thread(() -> {
+////                try {
+////                    while (true) {
+////                        Command msg = (Command) is.readObject();
+////                        // TODO: 23.09.2021 Разработка системы команд
+////                        switch (msg.getType()) {
+////
+////                        }
+////                    }
+////                } catch (Exception e) {
+////                    log.error("exception while read from input stream");
+////                }
+////            });
+////            daemon.setDaemon(true);
+////            daemon.start();
+////        } catch (IOException ioException) {
+////            log.error("e=", ioException);
+////        }
+//    }
+//
+//    public void updateList(Path path) {
+//        try {
+//            pathField.setText(path.normalize().toAbsolutePath().toString());
+//            filesTable.getItems().clear();
+//            filesTable.getItems().addAll(Files.list(path).map(FileInfo::new).collect(Collectors.toList()));
+//            filesTable.sort();
+//        } catch (IOException e) {
+//            Alert alert = new Alert(Alert.AlertType.WARNING, "По какой-то причине не удалось обновить список файлов", ButtonType.OK);
+//            alert.showAndWait();
+//        }
+//    }
+//
+//    public void selectDiskAction(ActionEvent actionEvent) {
+//        ComboBox<String> element = (ComboBox<String>) actionEvent.getSource();
+//        updateList(Paths.get(element.getSelectionModel().getSelectedItem()));
+//    }
+//
+//    public void btnPathUpAction(ActionEvent actionEvent) {
+//        Path upperPath = Paths.get(pathField.getText()).getParent();
+//        if (upperPath != null) {
+//            updateList(upperPath);
+//        }
+//    }
+//
+//}

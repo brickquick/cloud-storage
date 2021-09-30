@@ -21,8 +21,11 @@ public class FileMessageHandler extends SimpleChannelInboundHandler<Command> {
 //
 //        ctx.writeAndFlush("OK");
         switch (cmd.getType()) {
+            case FILE_MESSAGE:
+
+                ctx.writeAndFlush(String.format("[%s]", cmd.getType().toString()));
 
         }
-
+//        ctx.writeAndFlush(String.format("[%s]", cmd.getType().toString()));
     }
 }

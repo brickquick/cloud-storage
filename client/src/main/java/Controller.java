@@ -22,11 +22,14 @@ import java.util.stream.Collectors;
 public class Controller implements Initializable {
 
     @FXML
-    AnchorPane leftPanel, rightPanel;
+    AnchorPane leftPanel;
+
     @FXML
     public ListView<String> listView;
     @FXML
     public TextField input;
+
+    private static byte[] buffer = new byte[1024];
 
     private static String ROOT_DIR = "client/root";
     private ObjectDecoderInputStream is;
@@ -49,8 +52,9 @@ public class Controller implements Initializable {
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         net = Net.getInstance(s -> Platform.runLater(() ->
-                listView.getItems().add(s))
-        );
+                listView.getItems().add(s)));
+
+
 
     }
 
@@ -69,8 +73,6 @@ public class Controller implements Initializable {
         });
     }
 
-    private static byte[] buffer = new byte[1024];
-
     public void copyBtnAction(ActionEvent actionEvent) {
     }
 
@@ -79,4 +81,9 @@ public class Controller implements Initializable {
         System.exit(0);
     }
 
+    public void selectDiskAction(ActionEvent actionEvent) {
+    }
+
+    public void btnPathUpAction(ActionEvent actionEvent) {
+    }
 }

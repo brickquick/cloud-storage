@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.geometry.*?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
-<?import javafx.geometry.Insets?>
+<?import javafx.scene.text.*?>
 
-<?import javafx.scene.text.Text?>
-<AnchorPane prefWidth="310" xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml"
+<AnchorPane xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml"
             fx:controller="Controller">
 
       <VBox>
@@ -17,19 +17,34 @@
                   </VBox>
 
                   <fx:include fx:id="leftPanel" source="leftPanel.fxml" HBox.hgrow="ALWAYS" VBox.vgrow="ALWAYS" />
-                  <fx:include fx:id="rightPanel" source="rightPanel.fxml" HBox.hgrow="ALWAYS" VBox.vgrow="ALWAYS" />
-                  <padding>
-                        <Insets bottom="5.0" left="5.0" right="5.0" top="5.0"/>
-                  </padding>
-            </HBox>
 
-            <HBox spacing="5">
-                  <Button maxWidth="Infinity" focusTraversable="false" text="Копировать файл" HBox.hgrow="ALWAYS" onAction="#copyBtnAction"/>
-                  <Button maxWidth="Infinity" focusTraversable="false" text="Переместить файл" HBox.hgrow="ALWAYS"/>
-                  <Button maxWidth="Infinity" focusTraversable="false" text="Удалить файл" HBox.hgrow="ALWAYS"/>
-                  <Button maxWidth="Infinity" focusTraversable="false" text="Выход из программы" HBox.hgrow="ALWAYS" onAction="#btnExitAction"/>
+                  <VBox alignment="CENTER" spacing="50.0">
+                        <Button focusTraversable="false" maxWidth="Infinity" onAction="#copyBtnAction" text="Копировать файл" HBox.hgrow="ALWAYS" />
+                        <Button focusTraversable="false" maxWidth="Infinity" text="Переместить файл" HBox.hgrow="ALWAYS" />
+                        <Button focusTraversable="false" maxWidth="Infinity" text="Удалить файл" HBox.hgrow="ALWAYS" />
+                        <Button focusTraversable="false" maxWidth="Infinity" onAction="#btnExitAction" text="Выход из программы" HBox.hgrow="ALWAYS" />
+                        <padding>
+                              <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
+                        </padding>
+                  </VBox>
+
+                  <HBox>
+                        <VBox>
+                              <HBox alignment="CENTER">
+                                    <Text text="☁" textAlignment="CENTER" />
+                              </HBox>
+                              <HBox>
+                                    <ComboBox fx:id="disksBox" onAction="#selectDiskAction" />
+                                    <TextField fx:id="pathField" editable="false" HBox.hgrow="ALWAYS" />
+                                    <Button onAction="#btnPathUpAction" text="↑" />
+                              </HBox>
+                              <TableView fx:id="filesTable" VBox.vgrow="ALWAYS" />
+                        </VBox>
+                  </HBox>
+<!--                  <fx:include fx:id="rightPanel" source="rightPanel.fxml" HBox.hgrow="ALWAYS" VBox.vgrow="ALWAYS" />-->
+
                   <padding>
-                        <Insets bottom="5.0" left="5.0" right="5.0" top="5.0"/>
+                        <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
                   </padding>
             </HBox>
       </VBox>

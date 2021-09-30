@@ -5,10 +5,12 @@
 <?import javafx.scene.text.*?>
 
 <AnchorPane xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml"
-            fx:controller="PanelController">
+            fx:controller="LeftPanelController">
     <HBox>
         <VBox>
-         <Text text="⌂" textAlignment="CENTER" />
+            <HBox alignment="CENTER">
+                <Text text="⌂" textAlignment="CENTER" />
+            </HBox>
             <HBox>
                 <ComboBox fx:id="disksBox" onAction="#selectDiskAction" />
                 <TextField fx:id="pathField" editable="false" HBox.hgrow="ALWAYS" />
@@ -17,7 +19,7 @@
             <TableView fx:id="filesTable" VBox.vgrow="ALWAYS" />
 
             <properties>
-<!--                <ctrl><fx:reference source="controller"/></ctrl>-->
+                <ctrl><fx:reference source="controller"/></ctrl>
             </properties>
         </VBox>
     </HBox>
