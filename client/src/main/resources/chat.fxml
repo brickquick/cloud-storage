@@ -2,8 +2,35 @@
 
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
 
-<AnchorPane prefHeight="502.0" prefWidth="331.0" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="Controller">
-      <ListView fx:id="listView" layoutX="14.0" layoutY="14.0" prefHeight="425.0" prefWidth="301.0" />
-      <TextField fx:id="input" layoutX="14.0" layoutY="439.0" onAction="#send" prefHeight="37.0" prefWidth="301.0" />
+<?import javafx.scene.text.Text?>
+<AnchorPane prefWidth="310" xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml"
+            fx:controller="Controller">
+
+      <VBox>
+            <HBox VBox.vgrow="ALWAYS">
+                  <VBox>
+                        <Text text="Console" textAlignment="CENTER" />
+                        <ListView fx:id="listView" layoutX="5" layoutY="5" prefHeight="375" prefWidth="300" />
+                        <TextField fx:id="input" layoutX="5" layoutY="440" onAction="#send" prefHeight="50" prefWidth="300" />
+                  </VBox>
+
+                  <fx:include fx:id="leftPanel" source="leftPanel.fxml" HBox.hgrow="ALWAYS" VBox.vgrow="ALWAYS" />
+                  <fx:include fx:id="rightPanel" source="rightPanel.fxml" HBox.hgrow="ALWAYS" VBox.vgrow="ALWAYS" />
+                  <padding>
+                        <Insets bottom="5.0" left="5.0" right="5.0" top="5.0"/>
+                  </padding>
+            </HBox>
+
+            <HBox spacing="5">
+                  <Button maxWidth="Infinity" focusTraversable="false" text="Копировать файл" HBox.hgrow="ALWAYS" onAction="#copyBtnAction"/>
+                  <Button maxWidth="Infinity" focusTraversable="false" text="Переместить файл" HBox.hgrow="ALWAYS"/>
+                  <Button maxWidth="Infinity" focusTraversable="false" text="Удалить файл" HBox.hgrow="ALWAYS"/>
+                  <Button maxWidth="Infinity" focusTraversable="false" text="Выход из программы" HBox.hgrow="ALWAYS" onAction="#btnExitAction"/>
+                  <padding>
+                        <Insets bottom="5.0" left="5.0" right="5.0" top="5.0"/>
+                  </padding>
+            </HBox>
+      </VBox>
 </AnchorPane>

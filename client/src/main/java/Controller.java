@@ -1,5 +1,16 @@
+import io.netty.handler.codec.serialization.ObjectDecoderInputStream;
+import io.netty.handler.codec.serialization.ObjectEncoderOutputStream;
+import javafx.fxml.FXML;
+import javafx.fxml.Initializable;
+import javafx.scene.control.ListView;
+import javafx.scene.control.TextField;
+import javafx.scene.layout.AnchorPane;
+import javafx.application.Platform;
+import javafx.event.ActionEvent;
+import lombok.extern.slf4j.Slf4j;
+import qbrick.FileMessage;
+
 import java.io.IOException;
-import java.net.Socket;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -7,24 +18,17 @@ import java.nio.file.Paths;
 import java.util.ResourceBundle;
 import java.util.stream.Collectors;
 
-import qbrick.Command;
-import qbrick.FileMessage;
-import io.netty.handler.codec.serialization.ObjectDecoderInputStream;
-import io.netty.handler.codec.serialization.ObjectEncoderOutputStream;
-import javafx.application.Platform;
-import javafx.event.ActionEvent;
-import javafx.fxml.Initializable;
-import javafx.scene.control.ListView;
-import javafx.scene.control.TextField;
-import lombok.extern.slf4j.Slf4j;
-
 @Slf4j
 public class Controller implements Initializable {
 
-    private static String ROOT_DIR = "client-sep-2021/root";
-    private static byte[] buffer = new byte[1024];
+    @FXML
+    AnchorPane leftPanel, rightPanel;
+    @FXML
     public ListView<String> listView;
+    @FXML
     public TextField input;
+
+    private static String ROOT_DIR = "client/root";
     private ObjectDecoderInputStream is;
     private ObjectEncoderOutputStream os;
     private Net net;
@@ -44,33 +48,10 @@ public class Controller implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        net = Net.getInstance(s -> Platform.runLater(() -> listView.getItems().add(s)));
+        net = Net.getInstance(s -> Platform.runLater(() ->
+                listView.getItems().add(s))
+        );
 
-
-
-//        try {
-//            fillFilesInCurrentDir();
-//            Socket socket = new Socket("localhost", 8189);
-//            os = new ObjectEncoderOutputStream(socket.getOutputStream());
-//            is = new ObjectDecoderInputStream(socket.getInputStream());
-//            Thread daemon = new Thread(() -> {
-//                try {
-//                    while (true) {
-//                        Command msg = (Command) is.readObject();
-//                        // TODO: 23.09.2021 Разработка системы команд
-//                        switch (msg.getType()) {
-//
-//                        }
-//                    }
-//                } catch (Exception e) {
-//                    log.error("exception while read from input stream");
-//                }
-//            });
-//            daemon.setDaemon(true);
-//            daemon.start();
-//        } catch (IOException ioException) {
-//            log.error("e=", ioException);
-//        }
     }
 
     private void fillFilesInCurrentDir() throws IOException {
@@ -87,4 +68,15 @@ public class Controller implements Initializable {
             }
         });
     }
+
+    private static byte[] buffer = new byte[1024];
+
+    public void copyBtnAction(ActionEvent actionEvent) {
+    }
+
+    public void btnExitAction(ActionEvent actionEvent) {
+        Platform.exit();
+        System.exit(0);
+    }
+
 }

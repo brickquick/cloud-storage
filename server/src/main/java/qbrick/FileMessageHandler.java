@@ -9,7 +9,7 @@ import io.netty.channel.SimpleChannelInboundHandler;
 
 public class FileMessageHandler extends SimpleChannelInboundHandler<Command> {
 
-    private static final Path ROOT = Paths.get("server-sep-2021", "root");
+    private static final Path ROOT = Paths.get("server", "root");
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, Command cmd) throws Exception {
