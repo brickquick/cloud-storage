@@ -16,7 +16,7 @@
                         <TextField fx:id="input" layoutX="5" layoutY="440" onAction="#send" prefHeight="50" prefWidth="300" />
                   </VBox>
 
-                  <fx:include fx:id="leftPanel" source="leftPanel.fxml" HBox.hgrow="ALWAYS" VBox.vgrow="ALWAYS" />
+                  <fx:include fx:id="clientPanel" source="clientPanel.fxml" HBox.hgrow="ALWAYS" VBox.vgrow="ALWAYS" />
 
                   <VBox alignment="CENTER" spacing="50.0">
                         <Button focusTraversable="false" maxWidth="Infinity" onAction="#copyBtnAction" text="Копировать файл" HBox.hgrow="ALWAYS" />
@@ -39,6 +39,9 @@
                                     <Button onAction="#btnPathUpAction" text="↑" />
                               </HBox>
                               <TableView fx:id="filesTable" VBox.vgrow="ALWAYS" />
+                              <properties>
+                                    <ctrls><fx:reference source="controller"/></ctrls>
+                              </properties>
                         </VBox>
                   </HBox>
 <!--                  <fx:include fx:id="rightPanel" source="rightPanel.fxml" HBox.hgrow="ALWAYS" VBox.vgrow="ALWAYS" />-->

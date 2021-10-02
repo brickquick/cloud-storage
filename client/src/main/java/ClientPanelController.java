@@ -18,7 +18,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ResourceBundle;
 import java.util.stream.Collectors;
 
-public class LeftPanelController implements Initializable {
+public class ClientPanelController implements Initializable {
 
     @FXML
     TableView<FileInfo> filesTable;
@@ -66,6 +66,7 @@ public class LeftPanelController implements Initializable {
         TableColumn<FileInfo, String> fileDateColumn = new TableColumn<>("Дата изменения");
         fileDateColumn.setCellValueFactory(param -> new SimpleStringProperty(param.getValue().getLastModified().format(dtf)));
         fileDateColumn.setPrefWidth(120);
+
         filesTable.getColumns().addAll(fileTypeColumn, filenameColumn, fileSizeColumn, fileDateColumn);
         filesTable.getSortOrder().add(fileTypeColumn);
 
@@ -89,29 +90,6 @@ public class LeftPanelController implements Initializable {
 
         updateList(Paths.get(ROOT_DIR));
 
-//        try {
-//            fillFilesInCurrentDir();
-//            Socket socket = new Socket("localhost", 8189);
-//            os = new ObjectEncoderOutputStream(socket.getOutputStream());
-//            is = new ObjectDecoderInputStream(socket.getInputStream());
-//            Thread daemon = new Thread(() -> {
-//                try {
-//                    while (true) {
-//                        Command msg = (Command) is.readObject();
-//                        // TODO: 23.09.2021 Разработка системы команд
-//                        switch (msg.getType()) {
-//
-//                        }
-//                    }
-//                } catch (Exception e) {
-//                    log.error("exception while read from input stream");
-//                }
-//            });
-//            daemon.setDaemon(true);
-//            daemon.start();
-//        } catch (IOException ioException) {
-//            log.error("e=", ioException);
-//        }
     }
 
     public void updateList(Path path) {

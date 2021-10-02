@@ -1,12 +1,13 @@
 package qbrick;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 
-public class FileInfo {
+public class FileInfo implements Serializable {
     public enum FileType {
         FILE("F"),
         DIRECTORY("D");

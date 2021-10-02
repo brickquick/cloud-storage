@@ -5,7 +5,7 @@
 <?import javafx.scene.text.*?>
 
 <AnchorPane xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml"
-            fx:controller="LeftPanelController">
+            fx:controller="ClientPanelController">
     <HBox>
         <VBox>
             <HBox alignment="CENTER">
