@@ -27,7 +27,6 @@ public class ClientPanelController implements Initializable {
     @FXML
     TextField pathField;
 
-
     private static String ROOT_DIR = "client/root";
 
     @Override
@@ -102,6 +101,17 @@ public class ClientPanelController implements Initializable {
             Alert alert = new Alert(Alert.AlertType.WARNING, "По какой-то причине не удалось обновить список файлов", ButtonType.OK);
             alert.showAndWait();
         }
+    }
+
+    public String getSelectedFilename() {
+        if (!filesTable.isFocused()) {
+            return null;
+        }
+        return filesTable.getSelectionModel().getSelectedItem().getFilename();
+    }
+
+    public Path getCurrentPath() {
+        return Paths.get(pathField.getText());
     }
 
     public void selectDiskAction(ActionEvent actionEvent) {

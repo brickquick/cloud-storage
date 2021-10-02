@@ -44,7 +44,7 @@ public class NettyEchoServer {
                     .sync();
             log.debug("Server started...");
             channelFuture.channel().closeFuture().sync(); // block
-        }catch (Exception e) {
+        } catch (Exception e) {
             log.error("Server exception: Stacktrace: ", e);
         } finally {
             auth.shutdownGracefully();

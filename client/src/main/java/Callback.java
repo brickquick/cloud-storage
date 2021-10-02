@@ -1,5 +1,5 @@
 import qbrick.Command;
 
 public interface Callback {
-    void call(Command cmd);
+    void call(Command cmd) throws Exception;
 }

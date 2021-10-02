@@ -8,5 +8,7 @@ public enum CommandType {
     PATH_REQUEST,
     PATH_RESPONSE,
     PATH_IN_REQUEST,
-    PATH_UP_REQUEST
+    PATH_UP_REQUEST,
+    CONSOLE_MESSAGE,
+    DELETE_REQUEST
 }

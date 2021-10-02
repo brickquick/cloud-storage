@@ -7,6 +7,13 @@ import javafx.scene.Scene;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 
+//клиент облака:
+//todo
+// передача тяжей по частям
+// вотчер с апдейтом
+// консоль
+// аутентификация со сценами
+// создание папок
 public class App extends Application {
 
     @Override
@@ -22,4 +29,5 @@ public class App extends Application {
         primaryStage.setScene(new Scene(parent));
         primaryStage.show();
     }
+
 }

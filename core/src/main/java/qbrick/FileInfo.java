@@ -1,5 +1,7 @@
 package qbrick;
 
+import lombok.Getter;
+
 import java.io.IOException;
 import java.io.Serializable;
 import java.nio.file.Files;
@@ -7,12 +9,13 @@ import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 
+@Getter
 public class FileInfo implements Serializable {
     public enum FileType {
         FILE("F"),
         DIRECTORY("D");
 
-        private String name;
+        private final String name;
 
         public String getName() {
             return name;
@@ -23,42 +26,10 @@ public class FileInfo implements Serializable {
         }
     }
 
-    private String filename;
-    private FileType type;
+    private final String filename;
+    private final FileType type;
     private long size;
-    private LocalDateTime lastModified;
-
-    public String getFilename() {
-        return filename;
-    }
-
-    public void setFilename(String filename) {
-        this.filename = filename;
-    }
-
-    public FileType getType() {
-        return type;
-    }
-
-    public void setType(FileType type) {
-        this.type = type;
-    }
-
-    public long getSize() {
-        return size;
-    }
-
-    public void setSize(long size) {
-        this.size = size;
-    }
-
-    public LocalDateTime getLastModified() {
-        return lastModified;
-    }
-
-    public void setLastModified(LocalDateTime lastModified) {
-        this.lastModified = lastModified;
-    }
+    private final LocalDateTime lastModified;
 
     public FileInfo(Path path) {
         try {

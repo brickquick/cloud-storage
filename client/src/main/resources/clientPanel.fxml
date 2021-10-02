@@ -4,23 +4,21 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.text.*?>
 
-<AnchorPane xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml"
-            fx:controller="ClientPanelController">
-    <HBox>
-        <VBox>
-            <HBox alignment="CENTER">
-                <Text text="⌂" textAlignment="CENTER" />
-            </HBox>
-            <HBox>
-                <ComboBox fx:id="disksBox" onAction="#selectDiskAction" />
-                <TextField fx:id="pathField" editable="false" HBox.hgrow="ALWAYS" />
-                <Button onAction="#btnPathUpAction" text="↑" />
-            </HBox>
-            <TableView fx:id="filesTable" VBox.vgrow="ALWAYS" />
-
-            <properties>
-                <ctrl><fx:reference source="controller"/></ctrl>
-            </properties>
-        </VBox>
+<VBox xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml"
+      fx:controller="ClientPanelController">
+    <HBox alignment="CENTER">
+        <Text text="⌂" textAlignment="CENTER"/>
     </HBox>
-</AnchorPane>
+    <HBox>
+        <ComboBox fx:id="disksBox" onAction="#selectDiskAction"/>
+        <TextField fx:id="pathField" editable="false" HBox.hgrow="ALWAYS"/>
+        <Button onAction="#btnPathUpAction" text="↑"/>
+    </HBox>
+    <TableView fx:id="filesTable" VBox.vgrow="ALWAYS"/>
+
+    <properties>
+        <ctrl>
+            <fx:reference source="controller"/>
+        </ctrl>
+    </properties>
+</VBox>

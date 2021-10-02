@@ -17,4 +17,5 @@ public class ClientStringHandler extends SimpleChannelInboundHandler<Command> {
         log.debug("received: {}", cmd.getType().toString());
         callback.call(cmd);
     }
+
 }

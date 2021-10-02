@@ -9,4 +9,5 @@ public class Command implements Serializable {
     public CommandType getType() {
         return type;
     }
+
 }

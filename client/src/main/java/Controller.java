@@ -7,9 +7,9 @@ import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
 import javafx.scene.input.MouseEvent;
-import javafx.scene.layout.AnchorPane;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
+import javafx.scene.layout.VBox;
 import lombok.extern.slf4j.Slf4j;
 import qbrick.*;
 
@@ -21,18 +21,15 @@ import java.nio.file.Paths;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.ResourceBundle;
-import java.util.stream.Collectors;
 
 @Slf4j
 public class Controller implements Initializable {
 
     @FXML
-    AnchorPane clientPanel;
+    VBox clientPanel;
 
     @FXML
     TableView<FileInfo> filesTable;
-    @FXML
-    ComboBox<String> disksBox;
     @FXML
     TextField pathField;
 
@@ -41,39 +38,40 @@ public class Controller implements Initializable {
     @FXML
     public TextField input;
 
-    private static byte[] buffer = new byte[1024];
-
     private static String ROOT_DIR = "client/root";
-    private ObjectDecoderInputStream is;
-    private ObjectEncoderOutputStream os;
     private Net net;
 
-    public void send(ActionEvent actionEvent) throws Exception {
-        String fileName = input.getText();
-//        sendFile(fileName);
-        net.sendMessage(fileName);
+    public void send(ActionEvent actionEvent) {
+        net.sendCmd(new ConsoleMessage(input.getText()));
         input.clear();
-    }
-
-    private void sendFile(String fileName) throws IOException {
-        Path file = Paths.get(ROOT_DIR, fileName);
-        os.writeObject(new FileMessage(file));
-        os.flush();
     }
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-//        net = Net.getInstance(s -> Platform.runLater(() ->
-//                listView.getItems().add(String.valueOf(s))));
-//        net = new Net(args -> listView.getItems().add((String) args[0]));
 
-        net = new Net(command -> {
-            switch (command.getType()) {
+        net = new Net(cmd -> {
+            switch (cmd.getType()) {
+                case CONSOLE_MESSAGE:
+                    ConsoleMessage consoleMessage = (ConsoleMessage) cmd;
+                    Platform.runLater(() -> {
+                        listView.getItems().addAll(consoleMessage.getMsg());
+                    });
+                    break;
+                case PATH_RESPONSE:
+                    PathResponse pathResponse = (PathResponse) cmd;
+                    updatePath(pathResponse.getPath());
+                    break;
+                case FILE_MESSAGE:
+                    FileMessage message = (FileMessage) cmd;
+                    ClientPanelController cpc = (ClientPanelController) clientPanel.getProperties().get("ctrl");
+                    Path currentDir = Paths.get(cpc.pathField.getText());
+                    Files.write(currentDir.resolve(message.getName()), message.getBytes());
+                    cpc.updateList(currentDir);
+                    break;
                 case LIST_RESPONSE:
-                    ListResponse files = (ListResponse) command;
+                    ListResponse files = (ListResponse) cmd;
 
                     Platform.runLater(() -> {
-                        listView.getItems().clear();
                         listView.getItems().addAll(files.getFileInfos().toString());
 
 
@@ -121,8 +119,10 @@ public class Controller implements Initializable {
                             @Override
                             public void handle(MouseEvent event) {
                                 if (event.getClickCount() == 2) {
-                                    net.sendCmd(new PathInRequest(filesTable.getSelectionModel().getSelectedItem().getFilename()));
-                                    updateList(files);
+                                    if (filesTable.getSelectionModel().getSelectedItem().getType() == FileInfo.FileType.DIRECTORY) {
+                                        net.sendCmd(new PathInRequest(filesTable.getSelectionModel().getSelectedItem().getFilename()));
+                                        updateList(files);
+                                    }
                                 }
                             }
                         });
@@ -130,13 +130,8 @@ public class Controller implements Initializable {
                         updateList(files);
                     });
                     break;
-                case PATH_RESPONSE:
-                    PathResponse pathResponse = (PathResponse) command;
-                    updatePath(pathResponse.getPath());
-                    break;
             }
         });
-
 
     }
 
@@ -150,21 +145,78 @@ public class Controller implements Initializable {
         filesTable.sort();
     }
 
+    public String getSelectedFilename() {
+        if (!filesTable.isFocused()) {
+            return null;
+        }
+        return filesTable.getSelectionModel().getSelectedItem().getFilename();
+    }
+
     public void copyBtnAction(ActionEvent actionEvent) {
+
         ClientPanelController cpc = (ClientPanelController) clientPanel.getProperties().get("ctrl");
 
+        if (getSelectedFilename() == null && cpc.getSelectedFilename() == null) {
+            Alert alert = new Alert(Alert.AlertType.ERROR, "Ни один файл не был выбран", ButtonType.OK);
+            alert.showAndWait();
+            return;
+        }
+
+        try {
+            if (cpc.getSelectedFilename() != null) {
+                Path srcPath = Paths.get(cpc.pathField.getText(), cpc.getSelectedFilename());
+                net.sendCmd(new FileMessage(srcPath));
+            }
+
+            if (getSelectedFilename() != null) {
+                net.sendCmd(new FileRequest(getSelectedFilename()));
+            }
+
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+
+    }
+
+    public void deleteBtnAction(ActionEvent actionEvent) {
+
+        ClientPanelController cpc = (ClientPanelController) clientPanel.getProperties().get("ctrl");
+
+        if (getSelectedFilename() == null && cpc.getSelectedFilename() == null) {
+            Alert alert = new Alert(Alert.AlertType.ERROR, "Ни один файл не был выбран", ButtonType.OK);
+            alert.showAndWait();
+            return;
+        }
+
+        try {
+            if (cpc.getSelectedFilename() != null) {
+                Path srcPath = Paths.get(cpc.pathField.getText(), cpc.getSelectedFilename());
+                System.out.println(srcPath.toString());
+                Files.deleteIfExists(srcPath);
+                cpc.updateList(cpc.getCurrentPath());
+            }
+
+            if (getSelectedFilename() != null) {
+                net.sendCmd(new DeleteRequest(getSelectedFilename()));
+            }
+
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
 
     }
 
     public void btnExitAction(ActionEvent actionEvent) {
         Platform.exit();
-        System.exit(0);
-    }
-
-    public void selectDiskAction(ActionEvent actionEvent) {
+        net.closeChannel();
+//        System.exit(0);
     }
 
     public void btnPathUpAction(ActionEvent actionEvent) {
         net.sendCmd(new PathUpRequest());
     }
+
+    public void doConsole(ActionEvent actionEvent) {
+    }
+
 }

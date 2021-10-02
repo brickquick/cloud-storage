@@ -3,17 +3,17 @@ package qbrick;
 import lombok.Getter;
 
 @Getter
-public class FileRequest extends Command {
+public class DeleteRequest extends Command {
 
     private final String name;
 
-    public FileRequest(String name) {
+    public DeleteRequest(String name) {
         this.name = name;
     }
 
     @Override
     public CommandType getType() {
-        return CommandType.FILE_REQUEST;
+        return CommandType.DELETE_REQUEST;
     }
 
 }

@@ -1,10 +1,12 @@
 package qbrick;
 
+import lombok.Getter;
+
 import java.io.IOException;
-import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+@Getter
 public class FileMessage extends Command {
 
     private final String name;
@@ -15,16 +17,9 @@ public class FileMessage extends Command {
         bytes = Files.readAllBytes(path);
     }
 
-    public String getName() {
-        return name;
-    }
-
-    public byte[] getBytes() {
-        return bytes;
-    }
-
     @Override
     public CommandType getType() {
         return CommandType.FILE_MESSAGE;
     }
+
 }

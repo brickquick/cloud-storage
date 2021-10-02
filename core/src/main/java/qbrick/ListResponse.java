@@ -9,16 +9,11 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Getter
-public class ListResponse extends Command{
+public class ListResponse extends Command {
 
-//    private final List<String> fileNames;
     private final List<FileInfo> fileInfos;
 
     public ListResponse(Path path) throws IOException {
-//        fileNames = Files.list(path)
-//                .map(p -> p.getFileName().toString())
-//                .collect(Collectors.toList());
-
         fileInfos = Files.list(path)
                 .map(FileInfo::new)
                 .collect(Collectors.toList());
