@@ -94,8 +94,9 @@ public class ClientPanelController implements Initializable {
                 if (event.getClickCount() == 2) {
                     Path path = Paths.get(pathField.getText()).resolve(filesTable.getSelectionModel().getSelectedItem().getFilename());
                     if (Files.isDirectory(path)) {
+                        updateList(path);
+
                         currentPath = path;
-                        updateList(currentPath);
                     }
                 }
             }

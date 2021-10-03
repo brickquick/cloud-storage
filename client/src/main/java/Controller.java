@@ -13,13 +13,17 @@ import javafx.scene.layout.VBox;
 import lombok.extern.slf4j.Slf4j;
 import qbrick.*;
 
-import java.io.IOException;
+import org.apache.commons.io.*;
+
+import java.io.File;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Optional;
 import java.util.ResourceBundle;
 
 @Slf4j
@@ -188,16 +192,36 @@ public class Controller implements Initializable {
             return;
         }
 
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION, "Подтвердите удаление файла", ButtonType.OK, ButtonType.CANCEL);
+        alert.setTitle("Delete File");
+
         try {
             if (cpc.getSelectedFilename() != null) {
                 Path srcPath = Paths.get(cpc.pathField.getText(), cpc.getSelectedFilename());
-                System.out.println(srcPath.toString());
-                Files.deleteIfExists(srcPath);
-//                cpc.updateList(cpc.getCurrentPath());
+
+                alert.setHeaderText(srcPath.normalize().toAbsolutePath().toString());
+                Optional<ButtonType> option = alert.showAndWait();
+                if (option.isPresent() && option.get() == ButtonType.OK) {
+                    File srcFile = new File(Paths.get(cpc.pathField.getText(), cpc.getSelectedFilename())
+                            .normalize().toAbsolutePath().toString());
+                    if (srcFile.isDirectory()) {
+                        Files.walk(srcPath)
+                                .sorted(Comparator.reverseOrder())
+                                .map(Path::toFile)
+                                .forEach(File::delete);
+                        cpc.updateList(cpc.getCurrentPath());
+                    } else {
+                        Files.deleteIfExists(srcPath);
+                    }
+                }
             }
 
             if (getSelectedFilename() != null) {
-                net.sendCmd(new DeleteRequest(getSelectedFilename()));
+                alert.setHeaderText(pathField.getText() + "\\" + getSelectedFilename());
+                Optional<ButtonType> option = alert.showAndWait();
+                if (option.get() == ButtonType.OK) {
+                    net.sendCmd(new DeleteRequest(getSelectedFilename()));
+                }
             }
 
         } catch (Exception e) {

@@ -1,12 +1,15 @@
 package qbrick;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.*;
+import java.util.Comparator;
 import java.util.List;
 
 import lombok.extern.slf4j.Slf4j;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
+import org.apache.commons.io.FileUtils;
 
 import static java.nio.file.StandardWatchEventKinds.*;
 
@@ -34,8 +37,8 @@ public class FileMessageHandler extends SimpleChannelInboundHandler<Command> {
         name = "user#" + cnt;
         log.debug("Client {} connected!", name);
         ctx.writeAndFlush(String.format("[%s]: %s", "Server", "connected successfully"));
-        ctx.writeAndFlush(new ListResponse(currentPath));
         ctx.writeAndFlush(new PathResponse(currentPath.toString()));
+        ctx.writeAndFlush(new ListResponse(currentPath));
         ctx.writeAndFlush(new ConsoleMessage(String.format("[%s]: %s", "Server", "connected successfully")));
 
         Thread watchThread = new Thread(() -> {
@@ -46,8 +49,12 @@ public class FileMessageHandler extends SimpleChannelInboundHandler<Command> {
                         List<WatchEvent<?>> events = key.pollEvents();
                         for (WatchEvent<?> event: events) {
                             log.debug("kind {}, context {}", event.kind(), event.context());
-                            ctx.writeAndFlush(new PathResponse(currentPath.toString()));
-                            ctx.writeAndFlush(new ListResponse(currentPath));
+                            try {
+                                ctx.writeAndFlush(new PathResponse(currentPath.toString()));
+                                ctx.writeAndFlush(new ListResponse(currentPath));
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
                         }
                         key.reset();
                     }
@@ -77,8 +84,20 @@ public class FileMessageHandler extends SimpleChannelInboundHandler<Command> {
                 break;
             case DELETE_REQUEST:
                 DeleteRequest deleteRequest = (DeleteRequest) cmd;
-                Files.deleteIfExists(currentPath.resolve(deleteRequest.getName()));
-//                ctx.writeAndFlush(new ListResponse(currentPath));
+
+                File srcFile = new File(Paths.get(String.valueOf(currentPath), deleteRequest.getName())
+                        .normalize().toAbsolutePath().toString());
+                System.out.println(srcFile.getAbsoluteFile().getPath());
+                if (srcFile.isDirectory()) {
+//                    FileUtils.deleteDirectory(srcFile);
+                    Files.walk(srcFile.toPath())
+                            .sorted(Comparator.reverseOrder())
+                            .map(Path::toFile)
+                            .forEach(File::delete);
+                } else {
+                    Files.deleteIfExists(currentPath.resolve(deleteRequest.getName()));
+                }
+                ctx.writeAndFlush(new ListResponse(currentPath));
                 break;
             case PATH_UP_REQUEST:
                 if (currentPath.getParent() != null) {
@@ -105,7 +124,8 @@ public class FileMessageHandler extends SimpleChannelInboundHandler<Command> {
                 break;
         }
 
-        currentPath.register(watchService, ENTRY_MODIFY, ENTRY_DELETE, ENTRY_CREATE);
+//        currentPath.register(watchService, ENTRY_MODIFY, ENTRY_DELETE, ENTRY_CREATE);
+        currentPath.register(watchService, ENTRY_MODIFY, ENTRY_CREATE);
     }
 
 }

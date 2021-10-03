@@ -26,22 +26,23 @@ public class FileInfo implements Serializable {
         }
     }
 
-    private final String filename;
-    private final FileType type;
+    private String filename;
+    private FileType type;
     private long size;
-    private final LocalDateTime lastModified;
+    private LocalDateTime lastModified;
 
     public FileInfo(Path path) {
         try {
             this.filename = path.getFileName().toString();
-            this.size = Files.size(path);
             this.type = Files.isDirectory(path) ? FileType.DIRECTORY : FileType.FILE;
             if (this.type == FileType.DIRECTORY) {
                 this.size = -1L;
+            } else {
+                this.size = Files.size(path);
             }
             this.lastModified = LocalDateTime.ofInstant(Files.getLastModifiedTime(path).toInstant(), ZoneOffset.ofHours(3));
-        } catch (IOException e) {
-            throw new RuntimeException("Unable to create file info from path");
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 }
