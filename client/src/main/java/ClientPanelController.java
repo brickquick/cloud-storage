@@ -1,3 +1,4 @@
+import javafx.application.Platform;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.event.ActionEvent;
@@ -6,18 +7,23 @@ import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
 import javafx.scene.input.MouseEvent;
+import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 import qbrick.FileInfo;
+import qbrick.ListResponse;
+import qbrick.PathResponse;
 
 import java.io.IOException;
 import java.net.URL;
-import java.nio.file.FileSystems;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.nio.file.*;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.ResourceBundle;
 import java.util.stream.Collectors;
 
+import static java.nio.file.StandardWatchEventKinds.*;
+
+@Slf4j
 public class ClientPanelController implements Initializable {
 
     @FXML
@@ -27,10 +33,17 @@ public class ClientPanelController implements Initializable {
     @FXML
     TextField pathField;
 
-    private static String ROOT_DIR = "client/root";
+    private final WatchService watchService = FileSystems.getDefault().newWatchService();
+
+    private static final Path ROOT_DIR = Paths.get("client/root").toAbsolutePath();
+    private static Path currentPath;
+
+    public ClientPanelController() throws IOException {
+    }
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        currentPath = ROOT_DIR;
         TableColumn<FileInfo, String> fileTypeColumn = new TableColumn<>();
         fileTypeColumn.setCellValueFactory(param -> new SimpleStringProperty(param.getValue().getType().getName()));
         fileTypeColumn.setPrefWidth(24);
@@ -81,13 +94,36 @@ public class ClientPanelController implements Initializable {
                 if (event.getClickCount() == 2) {
                     Path path = Paths.get(pathField.getText()).resolve(filesTable.getSelectionModel().getSelectedItem().getFilename());
                     if (Files.isDirectory(path)) {
-                        updateList(path);
+                        currentPath = path;
+                        updateList(currentPath);
                     }
                 }
             }
         });
 
-        updateList(Paths.get(ROOT_DIR));
+        Thread watchThread = new Thread(() -> {
+            while (true) {
+                try {
+                    WatchKey key = watchService.take();
+                    if (key.isValid()) {
+                        List<WatchEvent<?>> events = key.pollEvents();
+                        for (WatchEvent<?> event: events) {
+                            log.debug("kind {}, context {}", event.kind(), event.context());
+                            Platform.runLater(() -> {
+                                updateList(currentPath);
+                            });
+                        }
+                        key.reset();
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+        watchThread.setDaemon(true);
+        watchThread.start();
+
+        updateList(currentPath);
 
     }
 
@@ -97,6 +133,7 @@ public class ClientPanelController implements Initializable {
             filesTable.getItems().clear();
             filesTable.getItems().addAll(Files.list(path).map(FileInfo::new).collect(Collectors.toList()));
             filesTable.sort();
+            currentPath.register(watchService, ENTRY_MODIFY, ENTRY_DELETE, ENTRY_CREATE);
         } catch (IOException e) {
             Alert alert = new Alert(Alert.AlertType.WARNING, "По какой-то причине не удалось обновить список файлов", ButtonType.OK);
             alert.showAndWait();

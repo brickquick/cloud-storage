@@ -193,7 +193,7 @@ public class Controller implements Initializable {
                 Path srcPath = Paths.get(cpc.pathField.getText(), cpc.getSelectedFilename());
                 System.out.println(srcPath.toString());
                 Files.deleteIfExists(srcPath);
-                cpc.updateList(cpc.getCurrentPath());
+//                cpc.updateList(cpc.getCurrentPath());
             }
 
             if (getSelectedFilename() != null) {

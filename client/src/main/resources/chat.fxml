@@ -11,6 +11,7 @@
     <VBox>
         <MenuBar>
             <Menu text="Файл">
+                <MenuItem text="Подключиться к серверу"/>
                 <MenuItem text="Настройки"/>
                 <MenuItem text="Консоль" onAction="#doConsole"/>
                 <MenuItem text="Выйти из программы" onAction="#btnExitAction"/>
