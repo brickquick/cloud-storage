@@ -11,6 +11,7 @@
     </HBox>
     <HBox>
         <ComboBox fx:id="disksBox" onAction="#selectDiskAction"/>
+        <Button onAction="#btnHomePathAction" text="⌂"/>
         <TextField fx:id="pathField" editable="false" HBox.hgrow="ALWAYS"/>
         <Button onAction="#btnPathUpAction" text="↑"/>
     </HBox>

@@ -59,12 +59,20 @@ public class Net {
                 future.channel().closeFuture().sync(); // block
             } catch (Exception e) {
                 log.error("", e);
+                closeChannel();
             } finally {
                 group.shutdownGracefully();
             }
         });
         thread.setDaemon(true);
         thread.start();
+    }
+
+    public boolean isConnected() {
+        if (channel == null) {
+            return false;
+        }
+        return channel.isActive();
     }
 
     public void sendMessage(String msg) {

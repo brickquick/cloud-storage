@@ -181,4 +181,9 @@ public class ClientPanelController implements Initializable {
         }
     }
 
+    public void btnHomePathAction(ActionEvent actionEvent) {
+        currentPath = ROOT_DIR;
+        updatePath(currentPath);
+        updateList(currentPath);
+    }
 }

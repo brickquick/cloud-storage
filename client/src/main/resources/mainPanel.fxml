@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+
+<VBox xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml"
+      fx:controller="Controller">
+    <MenuBar>
+        <Menu text="Файл">
+            <MenuItem text="Подключиться к серверу" onAction="#connectToServer"/>
+            <MenuItem text="Настройки"/>
+            <MenuItem text="Консоль" onAction="#showConsole"/>
+            <MenuItem text="Выйти из программы" onAction="#btnExitAction"/>
+        </Menu>
+    </MenuBar>
+    <HBox fx:id="hbox">
+
+        <fx:include fx:id="clientPanel" source="clientPanel.fxml" VBox.vgrow="ALWAYS" prefWidth="506"/>
+
+        <VBox alignment="CENTER" spacing="50.0">
+            <Button focusTraversable="false" maxWidth="Infinity" onAction="#copyBtnAction" text="Копировать файл"
+                    HBox.hgrow="ALWAYS"/>
+            <Button focusTraversable="false" maxWidth="Infinity" text="Переместить файл" HBox.hgrow="ALWAYS"/>
+            <Button focusTraversable="false" maxWidth="Infinity" text="Создать папку" HBox.hgrow="ALWAYS"/>
+            <Button focusTraversable="false" maxWidth="Infinity" onAction="#deleteBtnAction" text="Удалить"
+                    HBox.hgrow="ALWAYS"/>
+            <padding>
+                <Insets bottom="5.0" left="5.0" right="5.0" top="5.0"/>
+            </padding>
+        </VBox>
+
+        <HBox prefWidth="506">
+            <VBox>
+                <HBox alignment="CENTER">
+                    <Text text="☁" textAlignment="CENTER"/>
+                </HBox>
+                <HBox>
+                    <Button onAction="#btnHomePathAction" text="⌂"/>
+                    <TextField fx:id="pathField" editable="false" HBox.hgrow="ALWAYS"/>
+                    <Button onAction="#btnPathUpAction" text="↑"/>
+                </HBox>
+                <TableView fx:id="filesTable" VBox.vgrow="ALWAYS"/>
+            </VBox>
+        </HBox>
+
+        <VBox fx:id="console" visible="false" prefWidth="0">
+            <Text text="Console:" textAlignment="CENTER"/>
+            <ListView fx:id="listView" layoutX="5" layoutY="5" prefHeight="375" prefWidth="300"/>
+            <TextField fx:id="input" layoutX="5" layoutY="440" onAction="#send" prefHeight="50" prefWidth="300"/>
+        </VBox>
+        <padding>
+            <Insets bottom="5.0" left="5.0" right="5.0" top="5.0"/>
+        </padding>
+    </HBox>
+</VBox>

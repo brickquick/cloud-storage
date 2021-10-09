@@ -9,14 +9,13 @@ import javafx.stage.WindowEvent;
 
 //клиент облака:
 //todo
-// консоль
 // создание папок
 // аутентификация со сценами
 public class App extends Application {
 
     @Override
     public void start(Stage primaryStage) throws Exception {
-        Parent parent = FXMLLoader.load(getClass().getResource("serverPanel.fxml"));
+        Parent parent = FXMLLoader.load(getClass().getResource("mainPanel.fxml"));
         primaryStage.setOnCloseRequest(new EventHandler<WindowEvent>() {
             @Override
             public void handle(WindowEvent t) {

@@ -7,6 +7,7 @@ import javafx.scene.control.*;
 import javafx.scene.input.MouseEvent;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import lombok.extern.slf4j.Slf4j;
 import qbrick.*;
@@ -30,16 +31,19 @@ public class Controller implements Initializable {
     VBox clientPanel;
 
     @FXML
+    public HBox hbox;
+    @FXML
     TableView<FileInfo> filesTable;
     @FXML
     TextField pathField;
 
     @FXML
+    public VBox console;
+    @FXML
     public ListView<String> listView;
     @FXML
     public TextField input;
 
-    private static String ROOT_DIR = "client/root";
     private Net net;
 
     private volatile boolean cancelUpload = false;
@@ -53,7 +57,11 @@ public class Controller implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        connectToNet();
+        hbox.getChildren().remove(console);
+    }
 
+    private void connectToNet() {
         net = new Net(cmd -> {
             switch (cmd.getType()) {
                 case DOWNLOAD_STATUS:
@@ -218,9 +226,7 @@ public class Controller implements Initializable {
                     });
                     break;
             }
-
         });
-
     }
 
     public void updatePath(String path) {
@@ -411,11 +417,29 @@ public class Controller implements Initializable {
         net.sendCmd(new PathUpRequest());
     }
 
-    public void doConsole(ActionEvent actionEvent) {
+    public void showConsole(ActionEvent actionEvent) {
+        console.setVisible(!console.isVisible());
+        if (console.isVisible()) {
+            console.setPrefWidth(300);
+            hbox.getChildren().add(console);
+        } else {
+            console.setPrefWidth(0);
+            hbox.getChildren().remove(console);
+        }
     }
 
     public void send(ActionEvent actionEvent) {
         net.sendCmd(new ConsoleMessage(input.getText()));
         input.clear();
+    }
+
+    public void btnHomePathAction(ActionEvent actionEvent) {
+        net.sendCmd(new ListRequest());
+    }
+
+    public void connectToServer(ActionEvent actionEvent) {
+        if (!net.isConnected()) {
+            connectToNet();
+        }
     }
 }

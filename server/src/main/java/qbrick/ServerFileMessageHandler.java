@@ -3,8 +3,12 @@ package qbrick;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import lombok.extern.slf4j.Slf4j;
 import io.netty.channel.ChannelHandlerContext;
@@ -203,9 +207,31 @@ public class ServerFileMessageHandler extends SimpleChannelInboundHandler<Comman
                 }
                 ctx.writeAndFlush(new ListResponse(currentPath));
                 break;
+            case LIST_REQUEST:
+                currentPath = HOME_PATH;
+                if (!Files.exists(currentPath)) {
+                    Files.createDirectory(currentPath);
+                }
+                ctx.writeAndFlush(new PathResponse(currentPath.toString()));
+                ctx.writeAndFlush(new ListResponse(currentPath));
+                break;
             case CONSOLE_MESSAGE:
                 ConsoleMessage consoleMessage = (ConsoleMessage) cmd;
-                ctx.writeAndFlush(new ConsoleMessage(String.format("[%s]: %s", name, consoleMessage.getMsg())));
+                String message = consoleMessage.getMsg().trim();
+                ctx.writeAndFlush(new ConsoleMessage(String.format("[%s]: %s", name, message)));
+
+                if (message.equals("ls")) {
+                    ctx.writeAndFlush(new ConsoleMessage(getFilesInfo()));
+                } else if (message.startsWith("cat")) {
+                    try {
+                        String fName = message.split(" ")[1];
+                        ctx.writeAndFlush(new ConsoleMessage(getFileDataAsString(fName)));
+                    } catch (Exception e) {
+                        ctx.writeAndFlush(new ConsoleMessage("Command cat should be have only two args\n"));
+                    }
+                } else {
+                    ctx.writeAndFlush(new ConsoleMessage("Wrong command. Use cat fileName or ls\n"));
+                }
                 break;
             default:
                 ctx.writeAndFlush(new ListResponse(currentPath));
@@ -240,5 +266,27 @@ public class ServerFileMessageHandler extends SimpleChannelInboundHandler<Comman
         String[] files = directory.list();
         assert files != null;
         return files.length == 0;
+    }
+
+    private String getFileDataAsString(String fileName) throws IOException {
+        if (Files.isDirectory(currentPath.resolve(fileName))) {
+            return "[ERROR] Command Cat cannot be applied to " + fileName + "\n";
+        } else {
+            return new String(Files.readAllBytes(currentPath.resolve(fileName))) + "\n";
+        }
+    }
+
+    private String getFilesInfo() throws IOException {
+        try (Stream<String> list = Files.list(currentPath).map(this::resolveFileType)) {
+            return list.collect(Collectors.joining("\n")) + "\n";
+        }
+    }
+
+    private String resolveFileType(Path path) {
+        if (Files.isDirectory(path)) {
+            return String.format("%s\t%s", "[DIR]  ", path.getFileName().toString());
+        } else {
+            return String.format("%s\t%s", "[FILE]", path.getFileName().toString());
+        }
     }
 }
