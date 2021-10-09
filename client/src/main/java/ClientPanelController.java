@@ -7,11 +7,8 @@ import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
 import javafx.scene.input.MouseEvent;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import qbrick.FileInfo;
-import qbrick.ListResponse;
-import qbrick.PathResponse;
 
 import java.io.IOException;
 import java.net.URL;
@@ -20,6 +17,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.ResourceBundle;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static java.nio.file.StandardWatchEventKinds.*;
 
@@ -94,9 +92,8 @@ public class ClientPanelController implements Initializable {
                 if (event.getClickCount() == 2) {
                     Path path = Paths.get(pathField.getText()).resolve(filesTable.getSelectionModel().getSelectedItem().getFilename());
                     if (Files.isDirectory(path)) {
+                        updatePath(path);
                         updateList(path);
-
-                        currentPath = path;
                     }
                 }
             }
@@ -109,10 +106,13 @@ public class ClientPanelController implements Initializable {
                     if (key.isValid()) {
                         List<WatchEvent<?>> events = key.pollEvents();
                         for (WatchEvent<?> event: events) {
+                            Path watchedPath = (Path) key.watchable();
+                            System.out.println(watchedPath);
                             log.debug("kind {}, context {}", event.kind(), event.context());
                             Platform.runLater(() -> {
                                 updateList(currentPath);
                             });
+                            Thread.sleep(1000);
                         }
                         key.reset();
                     }
@@ -124,20 +124,35 @@ public class ClientPanelController implements Initializable {
         watchThread.setDaemon(true);
         watchThread.start();
 
+        updatePath(currentPath);
         updateList(currentPath);
 
     }
 
     public void updateList(Path path) {
         try {
-            pathField.setText(path.normalize().toAbsolutePath().toString());
             filesTable.getItems().clear();
-            filesTable.getItems().addAll(Files.list(path).map(FileInfo::new).collect(Collectors.toList()));
+            Stream<FileInfo> list = Files.list(path).map(FileInfo::new);
+            filesTable.getItems().addAll(list.collect(Collectors.toList()));
             filesTable.sort();
-            currentPath.register(watchService, ENTRY_MODIFY, ENTRY_DELETE, ENTRY_CREATE);
+            list.close();
         } catch (IOException e) {
             Alert alert = new Alert(Alert.AlertType.WARNING, "По какой-то причине не удалось обновить список файлов", ButtonType.OK);
             alert.showAndWait();
+        }
+    }
+
+    public void clearList(Path path) {
+        filesTable.getItems().clear();
+    }
+
+    public void updatePath(Path path) {
+        try {
+            pathField.setText(path.normalize().toAbsolutePath().toString());
+            currentPath = path;
+            currentPath.register(watchService, ENTRY_MODIFY, ENTRY_DELETE, ENTRY_CREATE);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
@@ -154,12 +169,14 @@ public class ClientPanelController implements Initializable {
 
     public void selectDiskAction(ActionEvent actionEvent) {
         ComboBox<String> element = (ComboBox<String>) actionEvent.getSource();
+        updatePath(Paths.get(element.getSelectionModel().getSelectedItem()));
         updateList(Paths.get(element.getSelectionModel().getSelectedItem()));
     }
 
     public void btnPathUpAction(ActionEvent actionEvent) {
-        Path upperPath = Paths.get(pathField.getText()).getParent();
+        Path upperPath = getCurrentPath().getParent();
         if (upperPath != null) {
+            updatePath(upperPath);
             updateList(upperPath);
         }
     }

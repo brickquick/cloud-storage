@@ -4,6 +4,7 @@ import lombok.Getter;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.nio.file.AccessDeniedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
@@ -35,12 +36,18 @@ public class FileInfo implements Serializable {
         try {
             this.filename = path.getFileName().toString();
             this.type = Files.isDirectory(path) ? FileType.DIRECTORY : FileType.FILE;
-            if (this.type == FileType.DIRECTORY) {
-                this.size = -1L;
-            } else {
-                this.size = Files.size(path);
+            try {
+                if (this.type == FileType.DIRECTORY) {
+                    this.size = -1L;
+                } else {
+                    this.size = Files.size(path);
+                }
+                this.lastModified = LocalDateTime.ofInstant(Files.getLastModifiedTime(path).toInstant(), ZoneOffset.ofHours(3));
+            } catch (AccessDeniedException e) {
+                e.printStackTrace();
+                this.size = -2L;
+                lastModified = LocalDateTime.now();
             }
-            this.lastModified = LocalDateTime.ofInstant(Files.getLastModifiedTime(path).toInstant(), ZoneOffset.ofHours(3));
         } catch (Exception e) {
             e.printStackTrace();
         }

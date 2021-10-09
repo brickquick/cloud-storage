@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Getter
 public class ListResponse extends Command {
@@ -14,9 +15,9 @@ public class ListResponse extends Command {
     private final List<FileInfo> fileInfos;
 
     public ListResponse(Path path) throws IOException {
-        fileInfos = Files.list(path)
-                .map(FileInfo::new)
-                .collect(Collectors.toList());
+        Stream<FileInfo> list = Files.list(path).map(FileInfo::new);
+        fileInfos = list.collect(Collectors.toList());
+        list.close();
     }
 
     @Override

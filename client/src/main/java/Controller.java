@@ -1,5 +1,3 @@
-import io.netty.handler.codec.serialization.ObjectDecoderInputStream;
-import io.netty.handler.codec.serialization.ObjectEncoderOutputStream;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.event.EventHandler;
@@ -13,16 +11,15 @@ import javafx.scene.layout.VBox;
 import lombok.extern.slf4j.Slf4j;
 import qbrick.*;
 
-import org.apache.commons.io.*;
-
 import java.io.File;
+import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.Optional;
 import java.util.ResourceBundle;
 
@@ -45,16 +42,69 @@ public class Controller implements Initializable {
     private static String ROOT_DIR = "client/root";
     private Net net;
 
-    public void send(ActionEvent actionEvent) {
-        net.sendCmd(new ConsoleMessage(input.getText()));
-        input.clear();
-    }
+    private volatile boolean cancelUpload = false;
+    private volatile long uploadStart = 0;
+    private volatile long downloadStart = 0;
+    private volatile int lastLength = 0;
+    private int byteRead;
+    private FileMessage fileUploadFile;
+
+    private ProgressForm progressForm;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
 
         net = new Net(cmd -> {
             switch (cmd.getType()) {
+                case DOWNLOAD_STATUS:
+                    DownloadStatus downloadStatus = (DownloadStatus) cmd;
+                    uploadStart = downloadStatus.getStart();
+                    try (RandomAccessFile randomAccessFile = new RandomAccessFile(fileUploadFile.getFile(), "r")) {
+                        double pr = (double) uploadStart * 100L / randomAccessFile.length();
+                        log.debug("start: " + uploadStart + "; % = " + pr);
+                        progressForm.setProgress(pr/100);
+                        progressForm.getCancelBtn().setOnAction(action -> {
+                            uploadStart = -1;
+                            cancelUpload = true;
+                            try {
+                                Thread.sleep(1000);
+                                net.sendCmd(new DeleteRequest(fileUploadFile.getName()));
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                            progressForm.getDialogStage().close();
+                        });
+
+                        if (uploadStart != -1 && !cancelUpload) {
+                            randomAccessFile.seek(uploadStart);
+                            log.debug("(randomAccessFile.length() - start)：" + (randomAccessFile.length() - uploadStart));
+                            long a = randomAccessFile.length() - uploadStart;
+                            if (a < lastLength) {
+                                lastLength = (int) a;
+                            }
+                            log.debug("randomAccessFile.length()：" + randomAccessFile.length() + ",start:" + uploadStart + ",a:" + a + ",lastLength:" + lastLength);
+                            byte[] bytes = new byte[lastLength];
+                            log.debug("bytes.length=" + bytes.length);
+                            if ((byteRead = randomAccessFile.read(bytes)) != -1 && (randomAccessFile.length() - uploadStart) > 0) {
+                                log.debug("byteRead = " + byteRead);
+                                fileUploadFile.setEndPos(byteRead);
+                                fileUploadFile.setBytes(bytes);
+                                try {
+                                    net.sendCmd(fileUploadFile);
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                }
+                            } else {
+                                log.debug("byteRead channelRead()--------" + byteRead);
+                                fileUploadFile.setEndPos(-1);
+                                net.sendCmd(fileUploadFile);
+                                fileUploadFile = null;
+                            }
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    break;
                 case CONSOLE_MESSAGE:
                     ConsoleMessage consoleMessage = (ConsoleMessage) cmd;
                     Platform.runLater(() -> {
@@ -66,11 +116,40 @@ public class Controller implements Initializable {
                     updatePath(pathResponse.getPath());
                     break;
                 case FILE_MESSAGE:
-                    FileMessage message = (FileMessage) cmd;
+                    FileMessage fileMessage = (FileMessage) cmd;
                     ClientPanelController cpc = (ClientPanelController) clientPanel.getProperties().get("ctrl");
-                    Path currentDir = Paths.get(cpc.pathField.getText());
-                    Files.write(currentDir.resolve(message.getName()), message.getBytes());
-                    cpc.updateList(currentDir);
+                    byte[] bytes = fileMessage.getBytes();
+                    int endPos = fileMessage.getEndPos();
+                    String fileName = fileMessage.getName();
+                    String path = cpc.getCurrentPath() + File.separator + fileName;
+                    File file = new File(path);
+                    try (RandomAccessFile randomAccessFile = new RandomAccessFile(file, "rw")) {
+                        if (endPos >= 0) {
+                            randomAccessFile.seek(downloadStart);
+                            randomAccessFile.write(bytes);
+                            downloadStart = downloadStart + endPos;
+                            log.debug("start: " + downloadStart);
+                            net.sendCmd(new DownloadStatus(downloadStart));
+                        } else {
+                            downloadStart = 0;
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+//                    Files.write(currentDir.resolve(message.getName()), message.getBytes());
+                    cpc.updateList(cpc.getCurrentPath());
+                    progressForm.setProgress(fileMessage.getProgress()/100);
+                    progressForm.getCancelBtn().setOnAction(action -> {
+                        downloadStart = -1;
+                        net.sendCmd(new DownloadStatus(downloadStart));
+                        try {
+                            Thread.sleep(1000);
+                            Files.deleteIfExists(Paths.get(path));
+                        } catch (IOException | InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                        progressForm.getDialogStage().close();
+                    });
                     break;
                 case LIST_RESPONSE:
                     ListResponse files = (ListResponse) cmd;
@@ -111,8 +190,12 @@ public class Controller implements Initializable {
 
                         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
                         TableColumn<FileInfo, String> fileDateColumn = new TableColumn<>("Дата изменения");
-                        fileDateColumn.setCellValueFactory(param -> new SimpleStringProperty(
-                                param.getValue().getLastModified().format(dtf)));
+                        try {
+                            fileDateColumn.setCellValueFactory(param ->
+                                    new SimpleStringProperty(param.getValue().getLastModified().format(dtf)));
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
                         fileDateColumn.setPrefWidth(120);
 
                         filesTable.getColumns().clear();
@@ -135,6 +218,7 @@ public class Controller implements Initializable {
                     });
                     break;
             }
+
         });
 
     }
@@ -157,23 +241,61 @@ public class Controller implements Initializable {
     }
 
     public void copyBtnAction(ActionEvent actionEvent) {
+        ClientPanelController clientPC = (ClientPanelController) clientPanel.getProperties().get("ctrl");
 
-        ClientPanelController cpc = (ClientPanelController) clientPanel.getProperties().get("ctrl");
-
-        if (getSelectedFilename() == null && cpc.getSelectedFilename() == null) {
+        try {
+            if (getSelectedFilename() == null && clientPC.getSelectedFilename() == null) {
+                Alert alert = new Alert(Alert.AlertType.ERROR, "Ни один файл не был выбран", ButtonType.OK);
+                alert.showAndWait();
+                return;
+            }
+        } catch (NullPointerException e) {
             Alert alert = new Alert(Alert.AlertType.ERROR, "Ни один файл не был выбран", ButtonType.OK);
             alert.showAndWait();
             return;
         }
 
         try {
-            if (cpc.getSelectedFilename() != null) {
-                Path srcPath = Paths.get(cpc.pathField.getText(), cpc.getSelectedFilename());
-                net.sendCmd(new FileMessage(srcPath));
+            if (clientPC.getSelectedFilename() != null) {
+                Path srcFilePath = Paths.get(clientPC.pathField.getText(), clientPC.getSelectedFilename());
+                fileUploadFile = new FileMessage(srcFilePath);
+
+                try (RandomAccessFile randomAccessFile = new RandomAccessFile(fileUploadFile.getFile(), "r")) {
+                    randomAccessFile.seek(fileUploadFile.getStarPos());
+//                    lastLength = (int) randomAccessFile.length() / 10;
+//                    lastLength = 1024 * 10;
+                    lastLength = 1048576 / 2;
+                    if (randomAccessFile.length() < lastLength) {
+                        lastLength = (int) randomAccessFile.length();
+                    }
+                    byte[] bytes = new byte[lastLength];
+                    if ((byteRead = randomAccessFile.read(bytes)) != -1) {
+                        fileUploadFile.setEndPos(byteRead);
+                        fileUploadFile.setBytes(bytes);
+                        net.sendCmd(fileUploadFile);
+                    } else {
+                    }
+
+                    uploadStart = 0;
+                    cancelUpload = false;
+                    progressForm = new ProgressForm(fileUploadFile.getName());
+                    progressForm.setProgress(uploadStart);
+                    progressForm.activateProgressBar();
+
+                    log.debug("channelActive: " + byteRead);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+//                net.sendCmd(new FileMessage(srcPath));
             }
 
             if (getSelectedFilename() != null) {
+                downloadStart = 0;
                 net.sendCmd(new FileRequest(getSelectedFilename()));
+
+                progressForm = new ProgressForm(getSelectedFilename());
+                progressForm.setProgress(downloadStart);
+                progressForm.activateProgressBar();
             }
 
         } catch (Exception e) {
@@ -186,7 +308,13 @@ public class Controller implements Initializable {
 
         ClientPanelController cpc = (ClientPanelController) clientPanel.getProperties().get("ctrl");
 
-        if (getSelectedFilename() == null && cpc.getSelectedFilename() == null) {
+        try {
+            if (getSelectedFilename() == null && cpc.getSelectedFilename() == null) {
+                Alert alert = new Alert(Alert.AlertType.ERROR, "Ни один файл не был выбран", ButtonType.OK);
+                alert.showAndWait();
+                return;
+            }
+        } catch (NullPointerException e) {
             Alert alert = new Alert(Alert.AlertType.ERROR, "Ни один файл не был выбран", ButtonType.OK);
             alert.showAndWait();
             return;
@@ -195,45 +323,88 @@ public class Controller implements Initializable {
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION, "Подтвердите удаление файла", ButtonType.OK, ButtonType.CANCEL);
         alert.setTitle("Delete File");
 
-        try {
-            if (cpc.getSelectedFilename() != null) {
+        if (cpc.getSelectedFilename() != null) {
+            try {
                 Path srcPath = Paths.get(cpc.pathField.getText(), cpc.getSelectedFilename());
 
-                alert.setHeaderText(srcPath.normalize().toAbsolutePath().toString());
+                alert.setHeaderText(srcPath.normalize().toString());
                 Optional<ButtonType> option = alert.showAndWait();
                 if (option.isPresent() && option.get() == ButtonType.OK) {
-                    File srcFile = new File(Paths.get(cpc.pathField.getText(), cpc.getSelectedFilename())
-                            .normalize().toAbsolutePath().toString());
+                    File srcFile = new File(String.valueOf(Paths.get(cpc.pathField.getText(), cpc.getSelectedFilename())));
                     if (srcFile.isDirectory()) {
-                        Files.walk(srcPath)
-                                .sorted(Comparator.reverseOrder())
-                                .map(Path::toFile)
-                                .forEach(File::delete);
-                        cpc.updateList(cpc.getCurrentPath());
+                        if (isDirectoryEmpty(srcFile)) {
+                            Files.deleteIfExists(srcPath);
+                            System.out.println(srcPath + " delete");
+                        } else {
+                            deleteDirRecursively(srcFile);
+                            Thread.sleep(1000);
+                            if (isDirectoryEmpty(srcFile)) {
+                                Files.deleteIfExists(srcPath);
+                            }
+                        }
                     } else {
                         Files.deleteIfExists(srcPath);
+                        cpc.updateList(cpc.getCurrentPath());
                     }
                 }
-            }
+//                Thread.sleep(500);
+                cpc.updateList(cpc.getCurrentPath());
 
-            if (getSelectedFilename() != null) {
-                alert.setHeaderText(pathField.getText() + "\\" + getSelectedFilename());
-                Optional<ButtonType> option = alert.showAndWait();
-                if (option.get() == ButtonType.OK) {
-                    net.sendCmd(new DeleteRequest(getSelectedFilename()));
-                }
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
         }
 
+        if (getSelectedFilename() != null) {
+            alert.setHeaderText(pathField.getText() + "\\" + getSelectedFilename());
+            Optional<ButtonType> option = alert.showAndWait();
+            if (option.isPresent() && option.get() == ButtonType.OK) {
+                net.sendCmd(new DeleteRequest(getSelectedFilename()));
+            }
+        }
+
+
+    }
+
+    public void deleteDirRecursively(File baseDirectory) throws IOException {
+        File[] files = baseDirectory.listFiles();
+        assert files != null;
+        for (File file : files) {
+            if (file.isFile()) {
+                Files.deleteIfExists(Paths.get(file.getPath()));
+                System.out.println(file.getName() + " файл удален");
+            } else if (file.isDirectory()) {
+                while (!isDirectoryEmpty(file)) {
+                    log.debug(file.getName() + " Not empty");
+                    System.out.println(file.getName() + " визит");
+                    deleteDirRecursively(file);
+                }
+                log.debug(file.getName() + " empty");
+                Files.deleteIfExists(Paths.get(file.getPath()));
+                System.out.println(file.getName() + " каталог удален");
+            }
+        }
+    }
+
+    public boolean isDirectoryEmpty(File directory) {
+        String[] files = directory.list();
+        try {
+            if (files != null) {
+                return files.length == 0;
+            } else {
+                System.out.println("isDirectoryEmpty - true");
+                return true;
+            }
+        } catch (NullPointerException e) {
+            e.printStackTrace();
+            System.out.println("isDirectoryEmpty - truE");
+            return true;
+        }
     }
 
     public void btnExitAction(ActionEvent actionEvent) {
         Platform.exit();
         net.closeChannel();
-//        System.exit(0);
     }
 
     public void btnPathUpAction(ActionEvent actionEvent) {
@@ -243,4 +414,8 @@ public class Controller implements Initializable {
     public void doConsole(ActionEvent actionEvent) {
     }
 
+    public void send(ActionEvent actionEvent) {
+        net.sendCmd(new ConsoleMessage(input.getText()));
+        input.clear();
+    }
 }
