@@ -9,7 +9,6 @@ import javafx.stage.WindowEvent;
 
 //клиент облака:
 //todo
-// создание папок
 // аутентификация со сценами
 public class App extends Application {
 

@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import javafx.scene.paint.Color;
 import lombok.extern.slf4j.Slf4j;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -214,6 +215,21 @@ public class ServerFileMessageHandler extends SimpleChannelInboundHandler<Comman
                 }
                 ctx.writeAndFlush(new PathResponse(currentPath.toString()));
                 ctx.writeAndFlush(new ListResponse(currentPath));
+                break;
+            case CREATE_DIR_REQUEST:
+                CreateDirRequest createDirRequest = (CreateDirRequest) cmd;
+                try {
+                    Files.createDirectory(Paths.get(currentPath.toString(),
+                            createDirRequest.getName()));
+                    createDirRequest.setPossible(true);
+                    ctx.writeAndFlush(createDirRequest);
+                    ctx.writeAndFlush(new ListResponse(currentPath));
+                } catch (FileAlreadyExistsException ex) {
+                    createDirRequest.setPossible(false);
+                    ctx.writeAndFlush(createDirRequest);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
                 break;
             case CONSOLE_MESSAGE:
                 ConsoleMessage consoleMessage = (ConsoleMessage) cmd;

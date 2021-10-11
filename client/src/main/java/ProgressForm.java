@@ -14,17 +14,16 @@ public class ProgressForm {
     private final Stage dialogStage;
     private final ProgressBar pb = new ProgressBar();
     private final ProgressIndicator pin = new ProgressIndicator();
-    private final Label label = new Label();
     private final Button okBtn = new Button("OK");
     private final Button cancelBtn = new Button("Cancel");
 
     public ProgressForm(String text) {
         dialogStage = new Stage();
-//        dialogStage.initStyle(StageStyle.UTILITY);
         dialogStage.initStyle(StageStyle.UNDECORATED);
         dialogStage.setResizable(false);
         dialogStage.initModality(Modality.APPLICATION_MODAL);
 
+        Label label = new Label();
         label.setText("Upload File: " + text);
 
         pb.setProgress(0);
@@ -42,7 +41,6 @@ public class ProgressForm {
         hBox.getChildren().addAll(okBtn, cancelBtn);
         okBtn.setVisible(false);
         vBox.getChildren().add(hBox);
-
 
         Scene scene = new Scene(vBox);
         dialogStage.setScene(scene);

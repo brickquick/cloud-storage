@@ -9,6 +9,7 @@ import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
 import lombok.extern.slf4j.Slf4j;
 import qbrick.*;
 
@@ -16,6 +17,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.net.URL;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -33,9 +35,9 @@ public class Controller implements Initializable {
     @FXML
     public HBox hbox;
     @FXML
-    TableView<FileInfo> filesTable;
+    TableView<FileInfo> serverFilesTable;
     @FXML
-    TextField pathField;
+    TextField serverPathField;
 
     @FXML
     public VBox console;
@@ -54,6 +56,7 @@ public class Controller implements Initializable {
     private FileMessage fileUploadFile;
 
     private ProgressForm progressForm;
+    private CreateDirForm createDirForm;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -70,7 +73,7 @@ public class Controller implements Initializable {
                     try (RandomAccessFile randomAccessFile = new RandomAccessFile(fileUploadFile.getFile(), "r")) {
                         double pr = (double) uploadStart * 100L / randomAccessFile.length();
                         log.debug("start: " + uploadStart + "; % = " + pr);
-                        progressForm.setProgress(pr/100);
+                        progressForm.setProgress(pr / 100);
                         progressForm.getCancelBtn().setOnAction(action -> {
                             uploadStart = -1;
                             cancelUpload = true;
@@ -113,6 +116,21 @@ public class Controller implements Initializable {
                         e.printStackTrace();
                     }
                     break;
+                case CREATE_DIR_REQUEST:
+                    CreateDirRequest createDirRequest = (CreateDirRequest) cmd;
+                    System.out.println("createDirRequest " + createDirRequest.isPossible());
+                    if (createDirRequest.isPossible()) {
+                        Platform.runLater(() -> {
+                            createDirForm.closeForm();
+                        });
+                    } else {
+                        Platform.runLater(() -> {
+                            createDirForm.getLabel().setTextFill(Color.color(1, 0, 0));
+                            createDirForm.getLabel().setText("Директория с именем '" + createDirRequest.getName()
+                                    + "' уже существует");
+                        });
+                    }
+                    break;
                 case CONSOLE_MESSAGE:
                     ConsoleMessage consoleMessage = (ConsoleMessage) cmd;
                     Platform.runLater(() -> {
@@ -146,7 +164,7 @@ public class Controller implements Initializable {
                     }
 //                    Files.write(currentDir.resolve(message.getName()), message.getBytes());
                     cpc.updateList(cpc.getCurrentPath());
-                    progressForm.setProgress(fileMessage.getProgress()/100);
+                    progressForm.setProgress(fileMessage.getProgress() / 100);
                     progressForm.getCancelBtn().setOnAction(action -> {
                         downloadStart = -1;
                         net.sendCmd(new DownloadStatus(downloadStart));
@@ -206,17 +224,20 @@ public class Controller implements Initializable {
                         }
                         fileDateColumn.setPrefWidth(120);
 
-                        filesTable.getColumns().clear();
-                        filesTable.getColumns().addAll(fileTypeColumn, filenameColumn, fileSizeColumn, fileDateColumn);
-                        filesTable.getSortOrder().add(fileTypeColumn);
+                        serverFilesTable.getColumns().clear();
+                        serverFilesTable.getColumns().addAll(fileTypeColumn, filenameColumn, fileSizeColumn, fileDateColumn);
+                        serverFilesTable.getSortOrder().add(fileTypeColumn);
 
-                        filesTable.setOnMouseClicked(new EventHandler<MouseEvent>() {
+                        serverFilesTable.setOnMouseClicked(new EventHandler<MouseEvent>() {
                             @Override
                             public void handle(MouseEvent event) {
                                 if (event.getClickCount() == 2) {
-                                    if (filesTable.getSelectionModel().getSelectedItem().getType() == FileInfo.FileType.DIRECTORY) {
-                                        net.sendCmd(new PathInRequest(filesTable.getSelectionModel().getSelectedItem().getFilename()));
-                                        updateList(files);
+                                    try {
+                                        if (serverFilesTable.getSelectionModel().getSelectedItem().getType() == FileInfo.FileType.DIRECTORY) {
+                                            net.sendCmd(new PathInRequest(serverFilesTable.getSelectionModel().getSelectedItem().getFilename()));
+                                            updateList(files);
+                                        }
+                                    } catch (Exception ignored) {
                                     }
                                 }
                             }
@@ -230,20 +251,20 @@ public class Controller implements Initializable {
     }
 
     public void updatePath(String path) {
-        pathField.setText(path);
+        serverPathField.setText(path);
     }
 
     public void updateList(ListResponse files) {
-        filesTable.getItems().clear();
-        filesTable.getItems().addAll(new ArrayList<>(files.getFileInfos()));
-        filesTable.sort();
+        serverFilesTable.getItems().clear();
+        serverFilesTable.getItems().addAll(new ArrayList<>(files.getFileInfos()));
+        serverFilesTable.sort();
     }
 
     public String getSelectedFilename() {
-        if (!filesTable.isFocused()) {
+        if (!serverFilesTable.isFocused()) {
             return null;
         }
-        return filesTable.getSelectionModel().getSelectedItem().getFilename();
+        return serverFilesTable.getSelectionModel().getSelectedItem().getFilename();
     }
 
     public void copyBtnAction(ActionEvent actionEvent) {
@@ -310,6 +331,55 @@ public class Controller implements Initializable {
 
     }
 
+    public void createDirBtnAction(ActionEvent actionEvent) {
+        ClientPanelController clientPC = (ClientPanelController) clientPanel.getProperties().get("ctrl");
+
+        if (!clientPC.isFocusedTable() && !serverFilesTable.isFocused() && !serverPathField.isFocused()) {
+            Alert alert = new Alert(Alert.AlertType.ERROR, "Ни одно расположение не было выбрано", ButtonType.OK);
+            alert.showAndWait();
+            return;
+        }
+
+        try {
+            if (clientPC.isFocusedTable()) {
+                createDirForm = new CreateDirForm();
+                createDirForm.activateForm();
+                createDirForm.getTextField().setOnAction(action -> {
+                    try {
+                        Files.createDirectory(Paths.get(clientPC.getCurrentPath().toString(),
+                                createDirForm.getTextField().getText()));
+                        createDirForm.closeForm();
+                    } catch (FileAlreadyExistsException ex) {
+                        createDirForm.getLabel().setTextFill(Color.color(1, 0, 0));
+                        if (createDirForm.getTextField().getText().equals("")) {
+                            createDirForm.getLabel().setText("Задано пустое имя директории");
+                        } else {
+                            createDirForm.getLabel().setText("Директория с именем '" + createDirForm.getTextField().getText()
+                                    + "' уже существует");
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                });
+            }
+
+            if (serverFilesTable.isFocused() || serverPathField.isFocused()) {
+                createDirForm = new CreateDirForm();
+                createDirForm.activateForm();
+                createDirForm.getTextField().setOnAction(action -> {
+                    if (createDirForm.getTextField().getText().equals("")) {
+                        createDirForm.getLabel().setTextFill(Color.color(1, 0, 0));
+                        createDirForm.getLabel().setText("Задано пустое имя директории");
+                    } else {
+                        net.sendCmd(new CreateDirRequest(createDirForm.getTextField().getText()));
+                    }
+                });
+            }
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
     public void deleteBtnAction(ActionEvent actionEvent) {
 
         ClientPanelController cpc = (ClientPanelController) clientPanel.getProperties().get("ctrl");
@@ -362,7 +432,7 @@ public class Controller implements Initializable {
         }
 
         if (getSelectedFilename() != null) {
-            alert.setHeaderText(pathField.getText() + "\\" + getSelectedFilename());
+            alert.setHeaderText(serverPathField.getText() + "\\" + getSelectedFilename());
             Optional<ButtonType> option = alert.showAndWait();
             if (option.isPresent() && option.get() == ButtonType.OK) {
                 net.sendCmd(new DeleteRequest(getSelectedFilename()));
@@ -442,4 +512,5 @@ public class Controller implements Initializable {
             connectToNet();
         }
     }
+
 }

@@ -90,10 +90,13 @@ public class ClientPanelController implements Initializable {
             @Override
             public void handle(MouseEvent event) {
                 if (event.getClickCount() == 2) {
-                    Path path = Paths.get(pathField.getText()).resolve(filesTable.getSelectionModel().getSelectedItem().getFilename());
-                    if (Files.isDirectory(path)) {
-                        updatePath(path);
-                        updateList(path);
+                    try {
+                        Path path = Paths.get(pathField.getText()).resolve(filesTable.getSelectionModel().getSelectedItem().getFilename());
+                        if (Files.isDirectory(path)) {
+                            updatePath(path);
+                            updateList(path);
+                        }
+                    } catch (Exception ignored) {
                     }
                 }
             }
@@ -161,6 +164,10 @@ public class ClientPanelController implements Initializable {
             return null;
         }
         return filesTable.getSelectionModel().getSelectedItem().getFilename();
+    }
+
+    public boolean isFocusedTable() {
+        return filesTable.isFocused() || pathField.isFocused();
     }
 
     public Path getCurrentPath() {

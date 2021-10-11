@@ -23,7 +23,7 @@
             <Button focusTraversable="false" maxWidth="Infinity" onAction="#copyBtnAction" text="Копировать файл"
                     HBox.hgrow="ALWAYS"/>
             <Button focusTraversable="false" maxWidth="Infinity" text="Переместить файл" HBox.hgrow="ALWAYS"/>
-            <Button focusTraversable="false" maxWidth="Infinity" text="Создать папку" HBox.hgrow="ALWAYS"/>
+            <Button focusTraversable="false" maxWidth="Infinity" onAction="#createDirBtnAction" text="Создать папку" HBox.hgrow="ALWAYS"/>
             <Button focusTraversable="false" maxWidth="Infinity" onAction="#deleteBtnAction" text="Удалить"
                     HBox.hgrow="ALWAYS"/>
             <padding>
@@ -38,10 +38,10 @@
                 </HBox>
                 <HBox>
                     <Button onAction="#btnHomePathAction" text="⌂"/>
-                    <TextField fx:id="pathField" editable="false" HBox.hgrow="ALWAYS"/>
+                    <TextField fx:id="serverPathField" editable="false" HBox.hgrow="ALWAYS"/>
                     <Button onAction="#btnPathUpAction" text="↑"/>
                 </HBox>
-                <TableView fx:id="filesTable" VBox.vgrow="ALWAYS"/>
+                <TableView fx:id="serverFilesTable" VBox.vgrow="ALWAYS"/>
             </VBox>
         </HBox>
 
