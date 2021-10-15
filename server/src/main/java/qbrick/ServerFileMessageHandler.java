@@ -3,14 +3,13 @@ package qbrick;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import javafx.scene.paint.Color;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.socket.SocketChannel;
 import lombok.extern.slf4j.Slf4j;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -20,9 +19,11 @@ import static java.nio.file.StandardWatchEventKinds.*;
 @Slf4j
 public class ServerFileMessageHandler extends SimpleChannelInboundHandler<Command> {
 
+    private Path HOME_PATH = Paths.get("server", "root");
+    private Path currentPath;
 
-    private static final Path HOME_PATH = Paths.get("server", "root");
-    private static Path currentPath;
+    private AuthService authService;
+    private boolean authOk = false;
 
     private static int cnt = 0;
     private String name;
@@ -33,11 +34,8 @@ public class ServerFileMessageHandler extends SimpleChannelInboundHandler<Comman
 
     private final WatchService watchService = FileSystems.getDefault().newWatchService();
 
-    public ServerFileMessageHandler() throws IOException {
-        currentPath = HOME_PATH;
-        if (!Files.exists(currentPath)) {
-            Files.createDirectory(currentPath);
-        }
+    public ServerFileMessageHandler(AuthService authService) throws IOException {
+        this.authService = authService;
     }
 
     @Override
@@ -45,10 +43,12 @@ public class ServerFileMessageHandler extends SimpleChannelInboundHandler<Comman
         cnt++;
         name = "user#" + cnt;
         log.debug("Client {} connected!", name);
-        ctx.writeAndFlush(String.format("[%s]: %s", "Server", "connected successfully"));
-        ctx.writeAndFlush(new PathResponse(currentPath.toString()));
-        ctx.writeAndFlush(new ListResponse(currentPath));
+//        ctx.writeAndFlush(new PathResponse(currentPath.toString()));
+//        ctx.writeAndFlush(new ListResponse(currentPath));
         ctx.writeAndFlush(new ConsoleMessage(String.format("[%s]: %s", "Server", "connected successfully")));
+        Authentication startAuth = new Authentication(null, null);
+        startAuth.setAuthOk(false);
+        ctx.writeAndFlush(startAuth);
 
         Thread watchThread = new Thread(() -> {
             while (true) {
@@ -81,181 +81,201 @@ public class ServerFileMessageHandler extends SimpleChannelInboundHandler<Comman
     protected void channelRead0(ChannelHandlerContext ctx, Command cmd) throws Exception {
         log.debug("received: {}", cmd.getType());
 
-        int byteRead;
-        switch (cmd.getType()) {
-            case FILE_REQUEST:
-                FileRequest fileRequest = (FileRequest) cmd;
-                fileUploadFile = new FileMessage(currentPath.resolve(fileRequest.getName()));
-                try (RandomAccessFile randomAccessFile = new RandomAccessFile(fileUploadFile.getFile(), "r")) {
-                    randomAccessFile.seek(fileUploadFile.getStarPos());
+        if (authOk) {
+            int byteRead;
+            switch (cmd.getType()) {
+                case FILE_REQUEST:
+                    FileRequest fileRequest = (FileRequest) cmd;
+                    fileUploadFile = new FileMessage(currentPath.resolve(fileRequest.getName()));
+                    try (RandomAccessFile randomAccessFile = new RandomAccessFile(fileUploadFile.getFile(), "r")) {
+                        randomAccessFile.seek(fileUploadFile.getStarPos());
 //                    lastLength = (int) randomAccessFile.length() / 10;
 //                    lastLength = 1024 * 10;
-                    lastLength = 1048576 / 2;
-                    if (randomAccessFile.length() < lastLength) {
-                        lastLength = (int) randomAccessFile.length();
-                    }
-                    byte[] bytes = new byte[lastLength];
-                    if ((byteRead = randomAccessFile.read(bytes)) != -1) {
-                        fileUploadFile.setEndPos(byteRead);
-                        fileUploadFile.setBytes(bytes);
-                        ctx.writeAndFlush(fileUploadFile);
-                    } else {
-                    }
-                    log.debug("channelActive: " + byteRead);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                break;
-            case DOWNLOAD_STATUS:
-                DownloadStatus downloadStatus = (DownloadStatus) cmd;
-                long uploadStart = downloadStatus.getStart();
-                try (RandomAccessFile randomAccessFile = new RandomAccessFile(fileUploadFile.getFile(), "r");) {
-                    double pr = (double) uploadStart * 100L / randomAccessFile.length();
-                    log.debug("start: " + uploadStart + "; % = " + pr);
-                    fileUploadFile.setProgress(pr);
-                    if (uploadStart != -1) {
-                        randomAccessFile.seek(uploadStart);
-                        log.debug("(randomAccessFile.length() - start)：" + (randomAccessFile.length() - uploadStart));
-                        long a = randomAccessFile.length() - uploadStart;
-                        if (a < lastLength) {
-                            lastLength = (int) a;
+                        lastLength = 1048576 / 2;
+                        if (randomAccessFile.length() < lastLength) {
+                            lastLength = (int) randomAccessFile.length();
                         }
-                        log.debug("randomAccessFile.length()：" + randomAccessFile.length() + ",start:" + uploadStart + ",a:" + a + ",lastLength:" + lastLength);
                         byte[] bytes = new byte[lastLength];
-                        log.debug("bytes.length=" + bytes.length);
-                        if ((byteRead = randomAccessFile.read(bytes)) != -1 && (randomAccessFile.length() - uploadStart) > 0) {
-                            log.debug("byteRead = " + byteRead);
+                        if ((byteRead = randomAccessFile.read(bytes)) != -1) {
                             fileUploadFile.setEndPos(byteRead);
                             fileUploadFile.setBytes(bytes);
-                            try {
-                                ctx.writeAndFlush(fileUploadFile);
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                            }
-                        } else {
-                            log.debug("byteRead channelRead()--------" + byteRead);
-                            fileUploadFile.setEndPos(-1);
                             ctx.writeAndFlush(fileUploadFile);
-//                                randomAccessFile.close();
-                            fileUploadFile = null;
+                        } else {
                         }
+                        log.debug("channelActive: " + byteRead);
+                    } catch (IOException e) {
+                        e.printStackTrace();
                     }
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                break;
-            case FILE_MESSAGE:
-                FileMessage fileMessage = (FileMessage) cmd;
-                byte[] bytes = fileMessage.getBytes();
-                int endPos = fileMessage.getEndPos();
-                String fileName = fileMessage.getName();
-                String path = currentPath + File.separator + fileName;
-                File file = new File(path);
-                try (RandomAccessFile randomAccessFile = new RandomAccessFile(file, "rw")) {
-                    if (endPos >= 0) {
-                        randomAccessFile.seek(downloadStart);
-                        randomAccessFile.write(bytes);
-                        downloadStart = downloadStart + endPos;
-                        log.debug("start: " + downloadStart + "; % = " + (float) (downloadStart * 100L / randomAccessFile.length()));
-                        ctx.writeAndFlush(new DownloadStatus(downloadStart));
-                    } else {
-                        downloadStart = 0;
+                    break;
+                case DOWNLOAD_STATUS:
+                    DownloadStatus downloadStatus = (DownloadStatus) cmd;
+                    long uploadStart = downloadStatus.getStart();
+                    try (RandomAccessFile randomAccessFile = new RandomAccessFile(fileUploadFile.getFile(), "r");) {
+                        double pr = (double) uploadStart * 100L / randomAccessFile.length();
+                        log.debug("start: " + uploadStart + "; % = " + pr);
+                        fileUploadFile.setProgress(pr);
+                        if (uploadStart != -1) {
+                            randomAccessFile.seek(uploadStart);
+                            log.debug("(randomAccessFile.length() - start)：" + (randomAccessFile.length() - uploadStart));
+                            long a = randomAccessFile.length() - uploadStart;
+                            if (a < lastLength) {
+                                lastLength = (int) a;
+                            }
+                            log.debug("randomAccessFile.length()：" + randomAccessFile.length() + ",start:" + uploadStart + ",a:" + a + ",lastLength:" + lastLength);
+                            byte[] bytes = new byte[lastLength];
+                            log.debug("bytes.length=" + bytes.length);
+                            if ((byteRead = randomAccessFile.read(bytes)) != -1 && (randomAccessFile.length() - uploadStart) > 0) {
+                                log.debug("byteRead = " + byteRead);
+                                fileUploadFile.setEndPos(byteRead);
+                                fileUploadFile.setBytes(bytes);
+                                try {
+                                    ctx.writeAndFlush(fileUploadFile);
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                }
+                            } else {
+                                log.debug("byteRead channelRead()--------" + byteRead);
+                                fileUploadFile.setEndPos(-1);
+                                ctx.writeAndFlush(fileUploadFile);
+//                                randomAccessFile.close();
+                                fileUploadFile = null;
+                            }
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
                     }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+                    break;
+                case FILE_MESSAGE:
+                    FileMessage fileMessage = (FileMessage) cmd;
+                    byte[] bytes = fileMessage.getBytes();
+                    int endPos = fileMessage.getEndPos();
+                    String fileName = fileMessage.getName();
+                    String path = currentPath + File.separator + fileName;
+                    File file = new File(path);
+                    try (RandomAccessFile randomAccessFile = new RandomAccessFile(file, "rw")) {
+                        if (endPos >= 0) {
+                            randomAccessFile.seek(downloadStart);
+                            randomAccessFile.write(bytes);
+                            downloadStart = downloadStart + endPos;
+                            log.debug("start: " + downloadStart + "; % = " + (float) (downloadStart * 100L / randomAccessFile.length()));
+                            ctx.writeAndFlush(new DownloadStatus(downloadStart));
+                        } else {
+                            downloadStart = 0;
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
 //                Files.write(currentPath.resolve(message.getName()), message.getBytes());
 //                ctx.writeAndFlush(new ListResponse(currentPath));
-                break;
-            case DELETE_REQUEST:
-                DeleteRequest deleteRequest = (DeleteRequest) cmd;
-                Path srcPath = Paths.get(String.valueOf(currentPath), deleteRequest.getName());
-                File srcFile = new File(srcPath.normalize().toAbsolutePath().toString());
-                System.out.println(srcFile.getAbsoluteFile().getPath());
-                if (srcFile.isDirectory()) {
-                    if (isDirectoryEmpty(srcFile)) {
-                        Files.deleteIfExists(srcPath);
-                    } else {
-                        deleteDirRecursively(srcFile);
-                        Thread.sleep(1000);
+                    break;
+                case DELETE_REQUEST:
+                    DeleteRequest deleteRequest = (DeleteRequest) cmd;
+                    Path srcPath = Paths.get(String.valueOf(currentPath), deleteRequest.getName());
+                    File srcFile = new File(srcPath.normalize().toAbsolutePath().toString());
+                    System.out.println(srcFile.getAbsoluteFile().getPath());
+                    if (srcFile.isDirectory()) {
                         if (isDirectoryEmpty(srcFile)) {
                             Files.deleteIfExists(srcPath);
+                        } else {
+                            deleteDirRecursively(srcFile);
+                            Thread.sleep(1000);
+                            if (isDirectoryEmpty(srcFile)) {
+                                Files.deleteIfExists(srcPath);
+                            }
                         }
-                    }
 //                    Files.walk(srcFile.toPath())
 //                            .sorted(Comparator.reverseOrder())
 //                            .map(Path::toFile)
 //                            .forEach(File::delete);
-                } else {
-                    Files.deleteIfExists(srcPath);
-                }
-                downloadStart = 0;
-                ctx.writeAndFlush(new ListResponse(currentPath));
-                break;
-            case PATH_UP_REQUEST:
-                if (currentPath.getParent() != null) {
-                    currentPath = currentPath.getParent();
-                }
-                ctx.writeAndFlush(new PathResponse(currentPath.toString()));
-                ctx.writeAndFlush(new ListResponse(currentPath));
-                break;
-            case PATH_IN_REQUEST:
-                PathInRequest request = (PathInRequest) cmd;
-                Path newPath = currentPath.resolve(request.getDir());
-                if (Files.isDirectory(newPath)) {
-                    currentPath = newPath;
-                    ctx.writeAndFlush(new PathResponse(currentPath.toString()));
-                }
-                ctx.writeAndFlush(new ListResponse(currentPath));
-                break;
-            case LIST_REQUEST:
-                currentPath = HOME_PATH;
-                if (!Files.exists(currentPath)) {
-                    Files.createDirectory(currentPath);
-                }
-                ctx.writeAndFlush(new PathResponse(currentPath.toString()));
-                ctx.writeAndFlush(new ListResponse(currentPath));
-                break;
-            case CREATE_DIR_REQUEST:
-                CreateDirRequest createDirRequest = (CreateDirRequest) cmd;
-                try {
-                    Files.createDirectory(Paths.get(currentPath.toString(),
-                            createDirRequest.getName()));
-                    createDirRequest.setPossible(true);
-                    ctx.writeAndFlush(createDirRequest);
-                    ctx.writeAndFlush(new ListResponse(currentPath));
-                } catch (FileAlreadyExistsException ex) {
-                    createDirRequest.setPossible(false);
-                    ctx.writeAndFlush(createDirRequest);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                break;
-            case CONSOLE_MESSAGE:
-                ConsoleMessage consoleMessage = (ConsoleMessage) cmd;
-                String message = consoleMessage.getMsg().trim();
-                ctx.writeAndFlush(new ConsoleMessage(String.format("[%s]: %s", name, message)));
-
-                if (message.equals("ls")) {
-                    ctx.writeAndFlush(new ConsoleMessage(getFilesInfo()));
-                } else if (message.startsWith("cat")) {
-                    try {
-                        String fName = message.split(" ")[1];
-                        ctx.writeAndFlush(new ConsoleMessage(getFileDataAsString(fName)));
-                    } catch (Exception e) {
-                        ctx.writeAndFlush(new ConsoleMessage("Command cat should be have only two args\n"));
+                    } else {
+                        Files.deleteIfExists(srcPath);
                     }
-                } else {
-                    ctx.writeAndFlush(new ConsoleMessage("Wrong command. Use cat fileName or ls\n"));
-                }
-                break;
-            default:
-                ctx.writeAndFlush(new ListResponse(currentPath));
-                break;
-        }
+                    downloadStart = 0;
+                    ctx.writeAndFlush(new ListResponse(currentPath));
+                    break;
+                case PATH_UP_REQUEST:
+                    if (currentPath.getParent() != null) {
+                        if (!currentPath.equals(HOME_PATH)) {
+                            currentPath = currentPath.getParent();
+                        }
+                    }
+                    ctx.writeAndFlush(new PathResponse(currentPath.toString()));
+                    ctx.writeAndFlush(new ListResponse(currentPath));
+                    break;
+                case PATH_IN_REQUEST:
+                    PathInRequest request = (PathInRequest) cmd;
+                    Path newPath = currentPath.resolve(request.getDir());
+                    if (Files.isDirectory(newPath)) {
+                        currentPath = newPath;
+                        ctx.writeAndFlush(new PathResponse(currentPath.toString()));
+                    }
+                    ctx.writeAndFlush(new ListResponse(currentPath));
+                    break;
+                case LIST_REQUEST:
+                    currentPath = HOME_PATH;
+                    if (!Files.exists(currentPath)) {
+                        Files.createDirectory(currentPath);
+                    }
+                    ctx.writeAndFlush(new PathResponse(currentPath.toString()));
+                    ctx.writeAndFlush(new ListResponse(currentPath));
+                    break;
+                case CREATE_DIR_REQUEST:
+                    CreateDirRequest createDirRequest = (CreateDirRequest) cmd;
+                    try {
+                        Files.createDirectory(Paths.get(currentPath.toString(),
+                                createDirRequest.getName()));
+                        createDirRequest.setPossible(true);
+                        ctx.writeAndFlush(createDirRequest);
+                        ctx.writeAndFlush(new ListResponse(currentPath));
+                    } catch (FileAlreadyExistsException ex) {
+                        createDirRequest.setPossible(false);
+                        ctx.writeAndFlush(createDirRequest);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    break;
+                case CONSOLE_MESSAGE:
+                    ConsoleMessage consoleMessage = (ConsoleMessage) cmd;
+                    String message = consoleMessage.getMsg().trim();
+                    ctx.writeAndFlush(new ConsoleMessage(String.format("[%s]: %s", name, message)));
 
-//        currentPath.register(watchService, ENTRY_MODIFY, ENTRY_CREATE);
-        currentPath.register(watchService, ENTRY_MODIFY, ENTRY_DELETE, ENTRY_CREATE);
+                    if (message.equals("ls")) {
+                        ctx.writeAndFlush(new ConsoleMessage(getFilesInfo()));
+                    } else if (message.startsWith("cat")) {
+                        try {
+                            String fName = message.split(" ")[1];
+                            ctx.writeAndFlush(new ConsoleMessage(getFileDataAsString(fName)));
+                        } catch (Exception e) {
+                            ctx.writeAndFlush(new ConsoleMessage("Command cat should be have only two args\n"));
+                        }
+                    } else {
+                        ctx.writeAndFlush(new ConsoleMessage("Wrong command. Use cat fileName or ls\n"));
+                    }
+                    break;
+                default:
+                    ctx.writeAndFlush(new ListResponse(currentPath));
+                    break;
+            }
+            currentPath.register(watchService, ENTRY_MODIFY, ENTRY_DELETE, ENTRY_CREATE);
+        } else {
+            switch (cmd.getType()) {
+                case AUTHENTICATION:
+                    Authentication authentication = (Authentication) cmd;
+                    authOk = authService.getAccByLoginPass(authentication.getLogin(), authentication.getPass()) != null;
+                    authentication.setAuthOk(authOk);
+                    ctx.writeAndFlush(authentication);
+                    if (authOk) {
+                        HOME_PATH = Paths.get("server", "root", authentication.getLogin());
+                        currentPath = HOME_PATH;
+                        if (!Files.exists(currentPath)) {
+                            Files.createDirectory(currentPath);
+                        }
+                    }
+                    break;
+                case REGISTRATION:
+                    break;
+            }
+        }
     }
 
     public void deleteDirRecursively(File baseDirectory) throws IOException {

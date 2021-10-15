@@ -9,12 +9,15 @@ import javafx.stage.StageStyle;
 import lombok.Getter;
 
 @Getter
-public class CreateDirForm {
+public class AuthForm {
     private final Stage dialogStage;
-    private TextField textField = new TextField("");
-    private Label label = new Label("New Directory");
+    private Label topLabel = new Label("Аутентификация");
+    private Label labelLogin = new Label("Логин:");
+    private Label labelPass = new Label("Пароль:");
+    private final TextField loginField = new TextField("login1");
+    private final TextField passField = new TextField("pass1");
 
-    public CreateDirForm() {
+    public AuthForm() {
         dialogStage = new Stage();
         dialogStage.initStyle(StageStyle.UTILITY);
         dialogStage.setResizable(false);
@@ -24,12 +27,14 @@ public class CreateDirForm {
         final VBox vBox = new VBox();
         vBox.setSpacing(5);
         vBox.setAlignment(Pos.CENTER);
-        vBox.getChildren().add(label);
-        vBox.getChildren().add(textField);
+        vBox.getChildren().add(topLabel);
+        vBox.getChildren().add(labelLogin);
+        vBox.getChildren().add(loginField);
+        vBox.getChildren().add(labelPass);
+        vBox.getChildren().add(passField);
 
         Scene scene = new Scene(vBox);
         dialogStage.setScene(scene);
-
     }
 
     public void activateForm()  {
@@ -39,5 +44,4 @@ public class CreateDirForm {
     public void closeForm() {
         dialogStage.close();
     }
-
 }

@@ -15,7 +15,11 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class NettyEchoServer {
 
+    private AuthService authService;
+
     public NettyEchoServer() {
+
+        authService = new BaseAuthService();
 
         EventLoopGroup auth = new NioEventLoopGroup(1);
         EventLoopGroup worker = new NioEventLoopGroup();
@@ -34,7 +38,7 @@ public class NettyEchoServer {
 //                                    new EchoHandler()
                                     new ObjectEncoder(),
                                     new ObjectDecoder(ClassResolvers.cacheDisabled(null)),
-                                    new ServerFileMessageHandler()
+                                    new ServerFileMessageHandler(authService)
                             );
                         }
                     })
@@ -47,6 +51,9 @@ public class NettyEchoServer {
         } finally {
             auth.shutdownGracefully();
             worker.shutdownGracefully();
+            if (authService != null) {
+                authService.stop();
+            }
         }
     }
 

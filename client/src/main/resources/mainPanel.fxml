@@ -20,11 +20,12 @@
         <fx:include fx:id="clientPanel" source="clientPanel.fxml" VBox.vgrow="ALWAYS" prefWidth="506"/>
 
         <VBox alignment="CENTER" spacing="50.0">
-            <Button focusTraversable="false" maxWidth="Infinity" onAction="#copyBtnAction" text="Копировать файл"
+            <Button focusTraversable="false" maxWidth="Infinity" text="Копировать" onAction="#copyBtnAction"
                     HBox.hgrow="ALWAYS"/>
-            <Button focusTraversable="false" maxWidth="Infinity" text="Переместить файл" HBox.hgrow="ALWAYS"/>
-            <Button focusTraversable="false" maxWidth="Infinity" onAction="#createDirBtnAction" text="Создать папку" HBox.hgrow="ALWAYS"/>
-            <Button focusTraversable="false" maxWidth="Infinity" onAction="#deleteBtnAction" text="Удалить"
+            <Button focusTraversable="false" maxWidth="Infinity" text="Переименовать" HBox.hgrow="ALWAYS"/>
+            <Button focusTraversable="false" maxWidth="Infinity" text="Создать папку" onAction="#createDirBtnAction"
+                    HBox.hgrow="ALWAYS"/>
+            <Button focusTraversable="false" maxWidth="Infinity" text="Удалить" onAction="#deleteBtnAction"
                     HBox.hgrow="ALWAYS"/>
             <padding>
                 <Insets bottom="5.0" left="5.0" right="5.0" top="5.0"/>

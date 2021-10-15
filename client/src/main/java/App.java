@@ -7,9 +7,9 @@ import javafx.scene.Scene;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 
-//клиент облака:
 //todo
-// аутентификация со сценами
+// регистрация
+// переименование файлов
 public class App extends Application {
 
     @Override

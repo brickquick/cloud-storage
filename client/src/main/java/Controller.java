@@ -47,6 +47,7 @@ public class Controller implements Initializable {
     public TextField input;
 
     private Net net;
+    private boolean authOk = false;
 
     private volatile boolean cancelUpload = false;
     private volatile long uploadStart = 0;
@@ -57,6 +58,7 @@ public class Controller implements Initializable {
 
     private ProgressForm progressForm;
     private CreateDirForm createDirForm;
+    private AuthForm authForm;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -65,8 +67,54 @@ public class Controller implements Initializable {
     }
 
     private void connectToNet() {
+        Platform.runLater(() -> {
+            authForm = new AuthForm();
+            authForm.activateForm();
+        });
         net = new Net(cmd -> {
             switch (cmd.getType()) {
+                case AUTHENTICATION:
+                    Authentication authentication = (Authentication) cmd;
+                    authOk = authentication.isAuthOk();
+                    Platform.runLater(() -> {
+                        if (!authOk) {
+                            if (!authForm.getLoginField().getText().equals("") || !authForm.getPassField().getText().equals("")) {
+                                authForm.getTopLabel().setTextFill(Color.color(1, 0, 0));
+                                authForm.getTopLabel().setText("Неверные логин или пароль:");
+                            }
+                            authForm.getLoginField().setOnAction(action -> {
+                                if (!authForm.getLoginField().getText().equals("")) {
+                                    authForm.getPassField().requestFocus();
+                                    authForm.getLabelLogin().setTextFill(Color.color(0, 0, 0));
+                                    authForm.getLabelLogin().setText("Логин:");
+                                } else {
+                                    authForm.getLabelLogin().setTextFill(Color.color(1, 0, 0));
+                                    authForm.getLabelLogin().setText("Логин пуст:");
+                                }
+                            });
+                            authForm.getPassField().setOnAction(action -> {
+                                if (!authForm.getPassField().getText().equals("")) {
+                                    net.sendCmd(new Authentication(authForm.getLoginField().getText(),
+                                            authForm.getPassField().getText()));
+                                    authForm.getLabelPass().setTextFill(Color.color(0, 0, 0));
+                                    authForm.getLabelPass().setText("Пароль:");
+                                    if (authForm.getLoginField().getText().equals("")){
+                                        authForm.getLoginField().requestFocus();
+                                        authForm.getLabelLogin().setTextFill(Color.color(1, 0, 0));
+                                        authForm.getLabelLogin().setText("Логин пуст:");
+                                    }
+                                } else {
+                                    authForm.getLabelPass().setTextFill(Color.color(1, 0, 0));
+                                    authForm.getLabelPass().setText("Password is empty:");
+                                }
+                            });
+                            authForm.activateForm();
+                        } else {
+                            net.sendCmd(new ListRequest());
+                            authForm.closeForm();
+                        }
+                    });
+                    break;
                 case DOWNLOAD_STATUS:
                     DownloadStatus downloadStatus = (DownloadStatus) cmd;
                     uploadStart = downloadStatus.getStart();
@@ -508,7 +556,7 @@ public class Controller implements Initializable {
     }
 
     public void connectToServer(ActionEvent actionEvent) {
-        if (!net.isConnected()) {
+        if (!net.isConnected() || !authOk) {
             connectToNet();
         }
     }
