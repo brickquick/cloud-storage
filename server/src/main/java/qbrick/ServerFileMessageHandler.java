@@ -273,6 +273,17 @@ public class ServerFileMessageHandler extends SimpleChannelInboundHandler<Comman
                     }
                     break;
                 case REGISTRATION:
+                    Registration reg = (Registration) cmd;
+                    if (!authService.isLoginBusy(reg.getLogin())){
+                        authService.addAcc(reg.getLogin(), reg.getPass());
+                        System.out.println("NOTT BUSYYyyyyyyyyyyyyyyyyyy");
+                        reg.setLoginBusy(false);
+                        ctx.writeAndFlush(reg);
+                    } else {
+                        System.out.println("BUSYYyyyyyyyyyyyyyyyyyy");
+                        reg.setLoginBusy(true);
+                        ctx.writeAndFlush(reg);
+                    }
                     break;
             }
         }

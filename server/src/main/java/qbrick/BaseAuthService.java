@@ -107,6 +107,29 @@ public class BaseAuthService implements AuthService {
     }
 
     @Override
+    public boolean addAcc(String login, String pass) {
+        if (!isLoginBusy(login)) {
+            try {
+                connection.setAutoCommit(false);
+                String sql = "INSERT INTO entries (login,pass) VALUES ('" + login + "', '" + pass + "');";
+                stmt.executeUpdate(sql);
+                connection.commit();
+                log.debug("INSERT INTO entries successfully");
+
+                entries.removeAll(entries);
+                entries.addAll(getAllEntries());
+                return true;
+            } catch (SQLException e) {
+                e.printStackTrace();
+                log.error("Ошибка записи в базу данных");
+                return false;
+            }
+        } else {
+            return false;
+        }
+    }
+
+    @Override
     public Integer getAccByLoginPass(String login, String pass) {
         for (Entry o : entries) {
             if (o.login.equals(login) && o.pass.equals(pass)) {
@@ -158,24 +181,29 @@ public class BaseAuthService implements AuthService {
     }
 
     private static void createTable() throws SQLException {
-        String sql = "CREATE TABLE entries " +
-                "(ID       INT PRIMARY KEY NOT NULL," +
-                " login    CHAR(50)        NOT NULL, " +
-                " pass     CHAR(50)        NOT NULL)";
+        String sql = "CREATE TABLE IF NOT EXISTS `entries` (" +
+                "`ID` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL ," +
+                "`login`    varchar(255)        NOT NULL, " +
+                "`pass`     varchar(255)       NOT NULL)";
         stmt.executeUpdate(sql);
         log.debug("Таблица создана успешно");
     }
 
     private void addEntry() throws SQLException {
         connection.setAutoCommit(false);
-        String sql = "INSERT INTO entries (ID,login,pass) VALUES (1, 'login1', 'pass1');";
-        stmt.executeUpdate(sql);
-
-        sql = "INSERT INTO entries (ID,login,pass) VALUES (2, 'login2', 'pass2');";
-        stmt.executeUpdate(sql);
-
-        sql = "INSERT INTO entries (ID,login,pass) VALUES (3, 'login3', 'pass3');";
-        stmt.executeUpdate(sql);
+        String sql;
+        if (!isLoginBusy("login1")) {
+            sql = "INSERT INTO entries (login,pass) VALUES ('login1', 'pass1');";
+            stmt.executeUpdate(sql);
+        }
+        if (!isLoginBusy("login2")) {
+            sql = "INSERT INTO entries (login,pass) VALUES ('login2', 'pass2');";
+            stmt.executeUpdate(sql);
+        }
+        if (!isLoginBusy("login3")) {
+            sql = "INSERT INTO entries (login,pass) VALUES ('login3', 'pass3');";
+            stmt.executeUpdate(sql);
+        }
         connection.commit();
         log.debug("INSERT INTO entries successfully");
     }

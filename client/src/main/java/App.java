@@ -8,7 +8,6 @@ import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 
 //todo
-// регистрация
 // переименование файлов
 public class App extends Application {
 

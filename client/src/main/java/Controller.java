@@ -70,6 +70,32 @@ public class Controller implements Initializable {
         Platform.runLater(() -> {
             authForm = new AuthForm();
             authForm.activateForm();
+
+            authForm.getPassRegField2().setOnAction(action -> {
+                if (!authForm.getPassRegField2().getText().equals("") &&
+                        !authForm.getPassRegField1().getText().equals("")) {
+                    if (authForm.getLoginRegField().getText().equals("")) {
+                        authForm.getLoginRegField().requestFocus();
+                        authForm.getLabelRegLogin().setTextFill(Color.color(1, 0, 0));
+                        authForm.getLabelRegLogin().setText("Логин пуст:");
+                    } else {
+                        if (!authForm.getPassRegField1().getText().equals(authForm.getPassRegField2().getText())) {
+                            authForm.getLabelRegPass2().setTextFill(Color.color(1, 0, 0));
+                            authForm.getLabelRegPass2().setText("Пароли не совпадают:");
+                        } else {
+                            net.sendCmd(new Registration(authForm.getLoginRegField().getText(),
+                                    authForm.getPassRegField2().getText()));
+                            authForm.getLabelRegPass2().setTextFill(Color.color(0, 0, 0));
+                            authForm.getLabelRegPass2().setText("Повторите пароль:");
+                        }
+                    }
+                } else {
+                    authForm.getLabelRegPass2().setTextFill(Color.color(1, 0, 0));
+                    authForm.getLabelRegPass2().setText("Пароль пуст:");
+                }
+                System.out.println(authForm.getPassRegField1().getText());
+                System.out.println(authForm.getPassRegField2().getText());
+            });
         });
         net = new Net(cmd -> {
             switch (cmd.getType()) {
@@ -78,40 +104,45 @@ public class Controller implements Initializable {
                     authOk = authentication.isAuthOk();
                     Platform.runLater(() -> {
                         if (!authOk) {
-                            if (!authForm.getLoginField().getText().equals("") || !authForm.getPassField().getText().equals("")) {
-                                authForm.getTopLabel().setTextFill(Color.color(1, 0, 0));
-                                authForm.getTopLabel().setText("Неверные логин или пароль:");
+                            if (!authForm.getLoginAuthField().getText().equals("") ||
+                                    !authForm.getPassAuthField().getText().equals("")) {
+                                authForm.getTopLabelReg().setTextFill(Color.color(1, 0, 0));
+                                authForm.getTopLabelReg().setText("Неверные логин или пароль:");
                             }
-                            authForm.getLoginField().setOnAction(action -> {
-                                if (!authForm.getLoginField().getText().equals("")) {
-                                    authForm.getPassField().requestFocus();
-                                    authForm.getLabelLogin().setTextFill(Color.color(0, 0, 0));
-                                    authForm.getLabelLogin().setText("Логин:");
-                                } else {
-                                    authForm.getLabelLogin().setTextFill(Color.color(1, 0, 0));
-                                    authForm.getLabelLogin().setText("Логин пуст:");
-                                }
-                            });
-                            authForm.getPassField().setOnAction(action -> {
-                                if (!authForm.getPassField().getText().equals("")) {
-                                    net.sendCmd(new Authentication(authForm.getLoginField().getText(),
-                                            authForm.getPassField().getText()));
-                                    authForm.getLabelPass().setTextFill(Color.color(0, 0, 0));
-                                    authForm.getLabelPass().setText("Пароль:");
-                                    if (authForm.getLoginField().getText().equals("")){
-                                        authForm.getLoginField().requestFocus();
-                                        authForm.getLabelLogin().setTextFill(Color.color(1, 0, 0));
-                                        authForm.getLabelLogin().setText("Логин пуст:");
+                            authForm.getPassAuthField().setOnAction(action -> {
+                                if (!authForm.getPassAuthField().getText().equals("")) {
+                                    if (authForm.getLoginAuthField().getText().equals("")) {
+                                        authForm.getLoginAuthField().requestFocus();
+                                        authForm.getLabelAuthLogin().setTextFill(Color.color(1, 0, 0));
+                                        authForm.getLabelAuthLogin().setText("Логин пуст:");
+                                    } else {
+                                        net.sendCmd(new Authentication(authForm.getLoginAuthField().getText(),
+                                                authForm.getPassAuthField().getText()));
+                                        authForm.getLabelAuthPass().setTextFill(Color.color(0, 0, 0));
+                                        authForm.getLabelAuthPass().setText("Пароль:");
                                     }
                                 } else {
-                                    authForm.getLabelPass().setTextFill(Color.color(1, 0, 0));
-                                    authForm.getLabelPass().setText("Password is empty:");
+                                    authForm.getLabelAuthPass().setTextFill(Color.color(1, 0, 0));
+                                    authForm.getLabelAuthPass().setText("Пароль пуст:");
                                 }
                             });
                             authForm.activateForm();
                         } else {
                             net.sendCmd(new ListRequest());
                             authForm.closeForm();
+                        }
+                    });
+                    break;
+                case REGISTRATION:
+                    Registration reg = (Registration) cmd;
+                    Platform.runLater(() -> {
+                        if (reg.isLoginBusy()) {
+                            authForm.getTopLabelReg().setTextFill(Color.color(1, 0, 0));
+                            authForm.getTopLabelReg().setText("Логин уже занят:");
+                        } else {
+                            authForm.getTopLabelAuth().setTextFill(Color.color(0, 0.5, 0));
+                            authForm.getTopLabelAuth().setText("Регистрация прошла успешно:");
+                            authForm.getAuthLink().fire();
                         }
                     });
                     break;
