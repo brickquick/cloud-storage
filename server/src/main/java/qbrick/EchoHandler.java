@@ -15,6 +15,7 @@ public class EchoHandler extends SimpleChannelInboundHandler<String> {
         cnt++;
         name = "user#" + cnt;
         log.debug("Client {} connected!", name);
+        ctx.writeAndFlush(String.format("[%s]: %s", "Server", "connected successfully"));
     }
 
     @Override
@@ -32,4 +33,5 @@ public class EchoHandler extends SimpleChannelInboundHandler<String> {
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         log.error("", cause);
     }
+
 }

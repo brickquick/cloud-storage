@@ -1,7 +1,5 @@
 package qbrick;
 
-import java.util.logging.FileHandler;
-
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
@@ -12,16 +10,16 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.serialization.ClassResolvers;
 import io.netty.handler.codec.serialization.ObjectDecoder;
 import io.netty.handler.codec.serialization.ObjectEncoder;
-import io.netty.handler.codec.string.StringDecoder;
-import io.netty.handler.codec.string.StringEncoder;
 import lombok.extern.slf4j.Slf4j;
 
-// send string
-// receive string
 @Slf4j
 public class NettyEchoServer {
 
+    private AuthService authService;
+
     public NettyEchoServer() {
+
+        authService = new BaseAuthService();
 
         EventLoopGroup auth = new NioEventLoopGroup(1);
         EventLoopGroup worker = new NioEventLoopGroup();
@@ -35,10 +33,12 @@ public class NettyEchoServer {
                         @Override
                         protected void initChannel(SocketChannel channel) throws Exception {
                             channel.pipeline().addLast(
-                                    // todo
-                                    new StringDecoder(),
-                                    new StringEncoder(),
-                                    new EchoHandler()
+//                                    new StringEncoder(),
+//                                    new StringDecoder(),
+//                                    new EchoHandler()
+                                    new ObjectEncoder(),
+                                    new ObjectDecoder(ClassResolvers.cacheDisabled(null)),
+                                    new ServerFileMessageHandler(authService)
                             );
                         }
                     })
@@ -46,11 +46,14 @@ public class NettyEchoServer {
                     .sync();
             log.debug("Server started...");
             channelFuture.channel().closeFuture().sync(); // block
-        }catch (Exception e) {
+        } catch (Exception e) {
             log.error("Server exception: Stacktrace: ", e);
         } finally {
             auth.shutdownGracefully();
             worker.shutdownGracefully();
+            if (authService != null) {
+                authService.stop();
+            }
         }
     }
 

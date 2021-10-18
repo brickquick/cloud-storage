@@ -1,3 +1,5 @@
+import qbrick.Command;
+
 public interface Callback {
-    void call(String str);
+    void call(Command cmd) throws Exception;
 }

@@ -1,9 +1,10 @@
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import lombok.extern.slf4j.Slf4j;
+import qbrick.Command;
 
 @Slf4j
-public class ClientStringHandler extends SimpleChannelInboundHandler<String> {
+public class ClientStringHandler extends SimpleChannelInboundHandler<Command> {
 
     private final Callback callback;
 
@@ -12,8 +13,9 @@ public class ClientStringHandler extends SimpleChannelInboundHandler<String> {
     }
 
     @Override
-    protected void channelRead0(ChannelHandlerContext ctx, String s) throws Exception {
-        log.debug("received: {}", s);
-        callback.call(s);
+    protected void channelRead0(ChannelHandlerContext ctx, Command cmd) throws Exception {
+        log.debug("received: {}", cmd.getType().toString());
+        callback.call(cmd);
     }
+
 }
