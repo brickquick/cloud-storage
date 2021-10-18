@@ -248,8 +248,14 @@ public class ServerFileMessageHandler extends SimpleChannelInboundHandler<Comman
                         } catch (Exception e) {
                             ctx.writeAndFlush(new ConsoleMessage("Command cat should be have only two args\n"));
                         }
-                    } else {
-                        ctx.writeAndFlush(new ConsoleMessage("Wrong command. Use cat fileName or ls\n"));
+                    }
+//                    else {
+//                        ctx.writeAndFlush(new ConsoleMessage("Wrong command. Use cat fileName or ls\n"));
+//                        break;
+//                    }
+                    if (message.equals("/showtable")) {
+                        authService.showTable();
+                        break;
                     }
                     break;
                 default:

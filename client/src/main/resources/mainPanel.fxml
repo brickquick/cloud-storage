@@ -1,58 +1,67 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<?language JavaScript?>
 
 <?import javafx.geometry.*?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.text.*?>
 
-<VBox xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml"
-      fx:controller="Controller">
+<VBox xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml" fx:controller="Controller">
     <MenuBar>
         <Menu text="Файл">
-            <MenuItem text="Подключиться к серверу" onAction="#connectToServer"/>
-            <MenuItem text="Настройки"/>
-            <MenuItem text="Консоль" onAction="#showConsole"/>
-            <MenuItem text="Выйти из программы" onAction="#btnExitAction"/>
+            <MenuItem onAction="#connectToServer" text="Подключиться к серверу" />
+            <MenuItem onAction="#disconnectFromServer" text="Отключиться от сервера" />
+            <MenuItem text="Настройки" />
+            <MenuItem onAction="#showConsole" text="Консоль" />
+            <MenuItem onAction="#btnExitAction" text="Выйти из программы" />
         </Menu>
     </MenuBar>
     <HBox fx:id="hbox">
 
-        <fx:include fx:id="clientPanel" source="clientPanel.fxml" VBox.vgrow="ALWAYS" prefWidth="506"/>
+        <fx:include fx:id="clientPanel" source="clientPanel.fxml" VBox.vgrow="ALWAYS" prefWidth="490"/>
 
         <VBox alignment="CENTER" spacing="50.0">
-            <Button focusTraversable="false" maxWidth="Infinity" text="Копировать" onAction="#copyBtnAction"
-                    HBox.hgrow="ALWAYS"/>
-            <Button focusTraversable="false" maxWidth="Infinity" text="Переименовать" HBox.hgrow="ALWAYS"/>
-            <Button focusTraversable="false" maxWidth="Infinity" text="Создать папку" onAction="#createDirBtnAction"
-                    HBox.hgrow="ALWAYS"/>
-            <Button focusTraversable="false" maxWidth="Infinity" text="Удалить" onAction="#deleteBtnAction"
-                    HBox.hgrow="ALWAYS"/>
+            <Button fx:id="copyBtn" alignment="BOTTOM_CENTER" focusTraversable="false" onAction="#copyBtnAction" prefHeight="60"
+                    prefWidth="150" text="Копировать" textAlignment="CENTER" textFill="WHITE"
+                    HBox.hgrow="ALWAYS" />
+            <fx:script>
+                
+            </fx:script>
+            <Button focusTraversable="false" maxWidth="Infinity" text="Переименовать"
+                    HBox.hgrow="ALWAYS" />
+            <Button focusTraversable="false" maxWidth="Infinity" onAction="#createDirBtnAction" text="Создать папку"
+                    HBox.hgrow="ALWAYS" />
+            <Button focusTraversable="false" maxWidth="Infinity" onAction="#deleteBtnAction" text="Удалить"
+                    HBox.hgrow="ALWAYS" />
             <padding>
-                <Insets bottom="5.0" left="5.0" right="5.0" top="5.0"/>
+                <Insets bottom="5.0" left="5.0" right="5.0" top="100.0" />
             </padding>
         </VBox>
 
-        <HBox prefWidth="506">
+        <HBox prefWidth="490">
             <VBox>
-                <HBox alignment="CENTER">
-                    <Text text="☁" textAlignment="CENTER"/>
+                <HBox alignment="CENTER" prefHeight="100.0" prefWidth="248.0">
+                    <Text text="cloud☁server" textAlignment="CENTER">
+                  <HBox.margin>
+                     <Insets bottom="85.0" />
+                  </HBox.margin></Text>
                 </HBox>
                 <HBox>
-                    <Button onAction="#btnHomePathAction" text="⌂"/>
-                    <TextField fx:id="serverPathField" editable="false" HBox.hgrow="ALWAYS"/>
-                    <Button onAction="#btnPathUpAction" text="↑"/>
+                    <Button fx:id="btnHome" onAction="#btnHomePathAction" text="⌂" />
+                    <TextField fx:id="serverPathField" editable="false" HBox.hgrow="ALWAYS" />
+                    <Button fx:id="btnUp" onAction="#btnPathUpAction" text="↑" />
                 </HBox>
-                <TableView fx:id="serverFilesTable" VBox.vgrow="ALWAYS"/>
+                <TableView fx:id="serverFilesTable" VBox.vgrow="ALWAYS" />
             </VBox>
         </HBox>
 
-        <VBox fx:id="console" visible="false" prefWidth="0">
-            <Text text="Console:" textAlignment="CENTER"/>
-            <ListView fx:id="listView" layoutX="5" layoutY="5" prefHeight="375" prefWidth="300"/>
-            <TextField fx:id="input" layoutX="5" layoutY="440" onAction="#send" prefHeight="50" prefWidth="300"/>
+        <VBox fx:id="console" prefWidth="0" visible="false">
+            <Text fx:id="consoleText" text="Console:" textAlignment="CENTER" />
+            <ListView fx:id="listView" layoutX="5" layoutY="5" prefHeight="500" prefWidth="300" />
+            <TextField fx:id="input" layoutX="5" layoutY="440" onAction="#send" prefHeight="50" prefWidth="300" />
         </VBox>
         <padding>
-            <Insets bottom="5.0" left="5.0" right="5.0" top="5.0"/>
+            <Insets bottom="5.0" left="5.0" right="5.0" top="4" />
         </padding>
     </HBox>
 </VBox>

@@ -21,7 +21,11 @@ public class App extends Application {
                 System.exit(0);
             }
         });
-        primaryStage.setScene(new Scene(parent));
+        Scene scene = new Scene(parent);
+        String css = this.getClass().getResource("application.css").toExternalForm();
+        scene.getStylesheets().add(css);
+//        primaryStage.setResizable(false);
+        primaryStage.setScene(scene);
         primaryStage.show();
     }
 

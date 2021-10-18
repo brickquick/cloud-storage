@@ -30,6 +30,9 @@ import java.util.ResourceBundle;
 public class Controller implements Initializable {
 
     @FXML
+    public Button copyBtn;
+
+    @FXML
     VBox clientPanel;
 
     @FXML
@@ -64,6 +67,11 @@ public class Controller implements Initializable {
     public void initialize(URL location, ResourceBundle resources) {
         connectToNet();
         hbox.getChildren().remove(console);
+        render();
+    }
+
+    private void render() {
+        copyBtn.getStyleClass().add("copyBtnDef");
     }
 
     private void connectToNet() {
@@ -104,10 +112,10 @@ public class Controller implements Initializable {
                     authOk = authentication.isAuthOk();
                     Platform.runLater(() -> {
                         if (!authOk) {
-                            if (!authForm.getLoginAuthField().getText().equals("") ||
+                            if (!authForm.getLoginAuthField().getText().equals("") &&
                                     !authForm.getPassAuthField().getText().equals("")) {
-                                authForm.getTopLabelReg().setTextFill(Color.color(1, 0, 0));
-                                authForm.getTopLabelReg().setText("Неверные логин или пароль:");
+                                authForm.getTopLabelAuth().setTextFill(Color.color(1, 0, 0));
+                                authForm.getTopLabelAuth().setText("Неверные логин или пароль:");
                             }
                             authForm.getPassAuthField().setOnAction(action -> {
                                 if (!authForm.getPassAuthField().getText().equals("")) {
@@ -150,7 +158,7 @@ public class Controller implements Initializable {
                     DownloadStatus downloadStatus = (DownloadStatus) cmd;
                     uploadStart = downloadStatus.getStart();
                     try (RandomAccessFile randomAccessFile = new RandomAccessFile(fileUploadFile.getFile(), "r")) {
-                        double pr = (double) uploadStart * 100L / randomAccessFile.length();
+                        double pr = (double) uploadStart * 100 / randomAccessFile.length();
                         log.debug("start: " + uploadStart + "; % = " + pr);
                         progressForm.setProgress(pr / 100);
                         progressForm.getCancelBtn().setOnAction(action -> {
@@ -241,8 +249,7 @@ public class Controller implements Initializable {
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
-//                    Files.write(currentDir.resolve(message.getName()), message.getBytes());
-                    cpc.updateList(cpc.getCurrentPath());
+//                    cpc.updateList(cpc.getCurrentPath());
                     progressForm.setProgress(fileMessage.getProgress() / 100);
                     progressForm.getCancelBtn().setOnAction(action -> {
                         downloadStart = -1;
@@ -269,7 +276,7 @@ public class Controller implements Initializable {
 
                         TableColumn<FileInfo, String> filenameColumn = new TableColumn<>("Имя");
                         filenameColumn.setCellValueFactory(param -> new SimpleStringProperty(param.getValue().getFilename()));
-                        filenameColumn.setPrefWidth(240);
+                        filenameColumn.setPrefWidth(200);
 
                         TableColumn<FileInfo, Long> fileSizeColumn = new TableColumn<>("Размер");
                         fileSizeColumn.setCellValueFactory(param -> new SimpleObjectProperty<>(param.getValue().getSize()));
@@ -396,6 +403,7 @@ public class Controller implements Initializable {
             }
 
             if (getSelectedFilename() != null) {
+                copyBtn.getStyleClass().add("copyBtnDefHoverDownl");
                 downloadStart = 0;
                 net.sendCmd(new FileRequest(getSelectedFilename()));
 
@@ -592,4 +600,16 @@ public class Controller implements Initializable {
         }
     }
 
+    public void disconnectFromServer(ActionEvent actionEvent) {
+        try {
+            if (net.isConnected() || authOk) {
+                net.closeChannel();
+                authOk = false;
+                updatePath(null);
+                updateList(null);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 }
