@@ -3,7 +3,6 @@ package qbrick;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.io.File;
 import java.nio.file.Path;
 
 @Getter
@@ -14,12 +13,12 @@ public class FileMessage extends Command {
     private byte[] bytes;
     private int starPos;
     private int endPos;
-    private File file;
     private double progress;
+    private String strPath;
 
     public FileMessage(Path path) {
         name = path.getFileName().toString();
-        file = new File(String.valueOf(path));
+        this.strPath = path.toString();
     }
 
     @Override

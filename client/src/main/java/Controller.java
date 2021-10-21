@@ -1,10 +1,8 @@
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
-import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
-import javafx.scene.input.MouseEvent;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.scene.layout.HBox;
@@ -23,6 +21,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.ResourceBundle;
 
@@ -58,6 +57,7 @@ public class Controller implements Initializable {
     private volatile int lastLength = 0;
     private int byteRead;
     private FileMessage fileUploadFile;
+    private File uploadFile;
 
     private ProgressForm progressForm;
     private CreateDirForm createDirForm;
@@ -66,45 +66,101 @@ public class Controller implements Initializable {
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         connectToNet();
-        hbox.getChildren().remove(console);
         render();
     }
 
     private void render() {
-        copyBtn.getStyleClass().add("copyBtnDef");
+        TableColumn<FileInfo, String> fileTypeColumn = new TableColumn<>();
+        fileTypeColumn.setCellValueFactory(param -> new SimpleStringProperty(param.getValue().getType().getName()));
+        fileTypeColumn.setPrefWidth(24);
+
+        TableColumn<FileInfo, String> filenameColumn = new TableColumn<>("Имя");
+        filenameColumn.setCellValueFactory(param -> new SimpleStringProperty(param.getValue().getFilename()));
+        filenameColumn.setPrefWidth(190);
+
+        TableColumn<FileInfo, Long> fileSizeColumn = new TableColumn<>("Размер");
+        fileSizeColumn.setCellValueFactory(param -> new SimpleObjectProperty<>(param.getValue().getSize()));
+        fileSizeColumn.setCellFactory(column -> {
+            return new TableCell<FileInfo, Long>() {
+                @Override
+                protected void updateItem(Long item, boolean empty) {
+                    super.updateItem(item, empty);
+                    if (item == null || empty) {
+                        setText(null);
+                        setStyle("");
+                    } else {
+                        String text = String.format("%,d bytes", item);
+                        if (item == -1L) {
+                            text = "[DIR]";
+                        }
+                        setText(text);
+                    }
+                }
+            };
+        });
+        fileSizeColumn.setPrefWidth(120);
+
+        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        TableColumn<FileInfo, String> fileDateColumn = new TableColumn<>("Дата изменения");
+        try {
+            fileDateColumn.setCellValueFactory(param ->
+                    new SimpleStringProperty(param.getValue().getLastModified().format(dtf)));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        fileDateColumn.setPrefWidth(120);
+
+        serverFilesTable.getColumns().clear();
+        serverFilesTable.getColumns().addAll(fileTypeColumn, filenameColumn, fileSizeColumn, fileDateColumn);
+        serverFilesTable.getSortOrder().add(fileTypeColumn);
+
+        copyBtn.getStyleClass().add("copyBtn");
+
+        hbox.getChildren().remove(console);
+
+        ClientPanelController cpc = (ClientPanelController) clientPanel.getProperties().get("ctrl");
+        cpc.getFilesTable().setOnMouseClicked(event -> {
+            if (event.getClickCount() == 2) {
+                cpc.pathIn();
+            }
+            if (cpc.getFilesTable().isFocused() && cpc.getFilesTable().getSelectionModel().getSelectedItem() != null) {
+                copyBtn.getStyleClass().removeIf(style -> style.equals("copyBtnD"));
+                copyBtn.getStyleClass().removeIf(style -> style.equals("copyBtn"));
+                copyBtn.getStyleClass().add("copyBtnU");
+            } else {
+                copyBtn.getStyleClass().removeIf(style -> style.equals("copyBtnD"));
+                copyBtn.getStyleClass().removeIf(style -> style.equals("copyBtnU"));
+                copyBtn.getStyleClass().add("copyBtn");
+            }
+        });
+
+        serverFilesTable.setOnMouseClicked(event -> {
+            if (event.getClickCount() == 2) {
+                try {
+                    if (serverFilesTable.getSelectionModel().getSelectedItem().getType() == FileInfo.FileType.DIRECTORY) {
+                        net.sendCmd(new PathInRequest(serverFilesTable.getSelectionModel().getSelectedItem().getFilename()));
+                    }
+                } catch (Exception ignored) {
+                }
+            }
+            if (serverFilesTable.isFocused() && serverFilesTable.getSelectionModel().getSelectedItem() != null) {
+                copyBtn.getStyleClass().removeIf(style -> style.equals("copyBtnU"));
+                copyBtn.getStyleClass().removeIf(style -> style.equals("copyBtn"));
+                copyBtn.getStyleClass().removeAll();
+                copyBtn.getStyleClass().add("copyBtnD");
+            } else {
+                copyBtn.getStyleClass().removeIf(style -> style.equals("copyBtnD"));
+                copyBtn.getStyleClass().removeIf(style -> style.equals("copyBtnU"));
+                copyBtn.getStyleClass().add("copyBtn");
+            }
+        });
     }
 
     private void connectToNet() {
         Platform.runLater(() -> {
             authForm = new AuthForm();
-            authForm.activateForm();
-
-            authForm.getPassRegField2().setOnAction(action -> {
-                if (!authForm.getPassRegField2().getText().equals("") &&
-                        !authForm.getPassRegField1().getText().equals("")) {
-                    if (authForm.getLoginRegField().getText().equals("")) {
-                        authForm.getLoginRegField().requestFocus();
-                        authForm.getLabelRegLogin().setTextFill(Color.color(1, 0, 0));
-                        authForm.getLabelRegLogin().setText("Логин пуст:");
-                    } else {
-                        if (!authForm.getPassRegField1().getText().equals(authForm.getPassRegField2().getText())) {
-                            authForm.getLabelRegPass2().setTextFill(Color.color(1, 0, 0));
-                            authForm.getLabelRegPass2().setText("Пароли не совпадают:");
-                        } else {
-                            net.sendCmd(new Registration(authForm.getLoginRegField().getText(),
-                                    authForm.getPassRegField2().getText()));
-                            authForm.getLabelRegPass2().setTextFill(Color.color(0, 0, 0));
-                            authForm.getLabelRegPass2().setText("Повторите пароль:");
-                        }
-                    }
-                } else {
-                    authForm.getLabelRegPass2().setTextFill(Color.color(1, 0, 0));
-                    authForm.getLabelRegPass2().setText("Пароль пуст:");
-                }
-                System.out.println(authForm.getPassRegField1().getText());
-                System.out.println(authForm.getPassRegField2().getText());
-            });
         });
+
         net = new Net(cmd -> {
             switch (cmd.getType()) {
                 case AUTHENTICATION:
@@ -112,6 +168,31 @@ public class Controller implements Initializable {
                     authOk = authentication.isAuthOk();
                     Platform.runLater(() -> {
                         if (!authOk) {
+                            authForm.activateForm();
+                            authForm.getPassRegField2().setOnAction(action -> {
+                                if (!authForm.getPassRegField2().getText().equals("") &&
+                                        !authForm.getPassRegField1().getText().equals("")) {
+                                    if (authForm.getLoginRegField().getText().equals("")) {
+                                        authForm.getLoginRegField().requestFocus();
+                                        authForm.getLabelRegLogin().setTextFill(Color.color(1, 0, 0));
+                                        authForm.getLabelRegLogin().setText("Логин пуст:");
+                                    } else {
+                                        if (!authForm.getPassRegField1().getText().equals(authForm.getPassRegField2().getText())) {
+                                            authForm.getLabelRegPass2().setTextFill(Color.color(1, 0, 0));
+                                            authForm.getLabelRegPass2().setText("Пароли не совпадают:");
+                                        } else {
+                                            net.sendCmd(new Registration(authForm.getLoginRegField().getText(),
+                                                    authForm.getPassRegField2().getText()));
+
+                                            authForm.getLabelRegPass2().setTextFill(Color.color(0, 0, 0));
+                                            authForm.getLabelRegPass2().setText("Повторите пароль:");
+                                        }
+                                    }
+                                } else {
+                                    authForm.getLabelRegPass2().setTextFill(Color.color(1, 0, 0));
+                                    authForm.getLabelRegPass2().setText("Пароль пуст:");
+                                }
+                            });
                             if (!authForm.getLoginAuthField().getText().equals("") &&
                                     !authForm.getPassAuthField().getText().equals("")) {
                                 authForm.getTopLabelAuth().setTextFill(Color.color(1, 0, 0));
@@ -134,7 +215,6 @@ public class Controller implements Initializable {
                                     authForm.getLabelAuthPass().setText("Пароль пуст:");
                                 }
                             });
-                            authForm.activateForm();
                         } else {
                             net.sendCmd(new ListRequest());
                             authForm.closeForm();
@@ -154,10 +234,48 @@ public class Controller implements Initializable {
                         }
                     });
                     break;
+                case FILE_MESSAGE:
+                    FileMessage fileMessage = (FileMessage) cmd;
+
+                    Platform.runLater(() -> {
+                    });
+
+                    ClientPanelController cpc = (ClientPanelController) clientPanel.getProperties().get("ctrl");
+                    byte[] startBytes = fileMessage.getBytes();
+                    int endPos = fileMessage.getEndPos();
+                    String fileName = fileMessage.getName();
+                    String path = cpc.getCurrentPath() + File.separator + fileName;
+                    File file = new File(path);
+                    try (RandomAccessFile randomAccessFile = new RandomAccessFile(file, "rw")) {
+                        if (endPos >= 0) {
+                            randomAccessFile.seek(downloadStart);
+                            randomAccessFile.write(startBytes);
+                            downloadStart = downloadStart + endPos;
+                            log.debug("start: " + downloadStart);
+                            net.sendCmd(new DownloadStatus(downloadStart));
+                        } else {
+                            downloadStart = 0;
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                    progressForm.setProgress(fileMessage.getProgress() / 100);
+                    progressForm.getCancelBtn().setOnAction(action -> {
+                        downloadStart = -1;
+                        net.sendCmd(new DownloadStatus(downloadStart));
+                        try {
+                            Thread.sleep(1000);
+                            Files.deleteIfExists(Paths.get(path));
+                        } catch (IOException | InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                        progressForm.getDialogStage().close();
+                    });
+                    break;
                 case DOWNLOAD_STATUS:
                     DownloadStatus downloadStatus = (DownloadStatus) cmd;
                     uploadStart = downloadStatus.getStart();
-                    try (RandomAccessFile randomAccessFile = new RandomAccessFile(fileUploadFile.getFile(), "r")) {
+                    try (RandomAccessFile randomAccessFile = new RandomAccessFile(uploadFile, "r")) {
                         double pr = (double) uploadStart * 100 / randomAccessFile.length();
                         log.debug("start: " + uploadStart + "; % = " + pr);
                         progressForm.setProgress(pr / 100);
@@ -197,6 +315,7 @@ public class Controller implements Initializable {
                                 fileUploadFile.setEndPos(-1);
                                 net.sendCmd(fileUploadFile);
                                 fileUploadFile = null;
+                                uploadFile = null;
                             }
                         }
                     } catch (IOException e) {
@@ -207,9 +326,7 @@ public class Controller implements Initializable {
                     CreateDirRequest createDirRequest = (CreateDirRequest) cmd;
                     System.out.println("createDirRequest " + createDirRequest.isPossible());
                     if (createDirRequest.isPossible()) {
-                        Platform.runLater(() -> {
-                            createDirForm.closeForm();
-                        });
+                        Platform.runLater(() -> createDirForm.closeForm());
                     } else {
                         Platform.runLater(() -> {
                             createDirForm.getLabel().setTextFill(Color.color(1, 0, 0));
@@ -220,115 +337,17 @@ public class Controller implements Initializable {
                     break;
                 case CONSOLE_MESSAGE:
                     ConsoleMessage consoleMessage = (ConsoleMessage) cmd;
-                    Platform.runLater(() -> {
-                        listView.getItems().addAll(consoleMessage.getMsg());
-                    });
+                    Platform.runLater(() -> listView.getItems().addAll(consoleMessage.getMsg()));
                     break;
                 case PATH_RESPONSE:
                     PathResponse pathResponse = (PathResponse) cmd;
                     updatePath(pathResponse.getPath());
                     break;
-                case FILE_MESSAGE:
-                    FileMessage fileMessage = (FileMessage) cmd;
-                    ClientPanelController cpc = (ClientPanelController) clientPanel.getProperties().get("ctrl");
-                    byte[] bytes = fileMessage.getBytes();
-                    int endPos = fileMessage.getEndPos();
-                    String fileName = fileMessage.getName();
-                    String path = cpc.getCurrentPath() + File.separator + fileName;
-                    File file = new File(path);
-                    try (RandomAccessFile randomAccessFile = new RandomAccessFile(file, "rw")) {
-                        if (endPos >= 0) {
-                            randomAccessFile.seek(downloadStart);
-                            randomAccessFile.write(bytes);
-                            downloadStart = downloadStart + endPos;
-                            log.debug("start: " + downloadStart);
-                            net.sendCmd(new DownloadStatus(downloadStart));
-                        } else {
-                            downloadStart = 0;
-                        }
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-//                    cpc.updateList(cpc.getCurrentPath());
-                    progressForm.setProgress(fileMessage.getProgress() / 100);
-                    progressForm.getCancelBtn().setOnAction(action -> {
-                        downloadStart = -1;
-                        net.sendCmd(new DownloadStatus(downloadStart));
-                        try {
-                            Thread.sleep(1000);
-                            Files.deleteIfExists(Paths.get(path));
-                        } catch (IOException | InterruptedException e) {
-                            e.printStackTrace();
-                        }
-                        progressForm.getDialogStage().close();
-                    });
-                    break;
                 case LIST_RESPONSE:
                     ListResponse files = (ListResponse) cmd;
 
                     Platform.runLater(() -> {
-                        listView.getItems().addAll(files.getFileInfos().toString());
-
-
-                        TableColumn<FileInfo, String> fileTypeColumn = new TableColumn<>();
-                        fileTypeColumn.setCellValueFactory(param -> new SimpleStringProperty(param.getValue().getType().getName()));
-                        fileTypeColumn.setPrefWidth(24);
-
-                        TableColumn<FileInfo, String> filenameColumn = new TableColumn<>("Имя");
-                        filenameColumn.setCellValueFactory(param -> new SimpleStringProperty(param.getValue().getFilename()));
-                        filenameColumn.setPrefWidth(200);
-
-                        TableColumn<FileInfo, Long> fileSizeColumn = new TableColumn<>("Размер");
-                        fileSizeColumn.setCellValueFactory(param -> new SimpleObjectProperty<>(param.getValue().getSize()));
-                        fileSizeColumn.setCellFactory(column -> {
-                            return new TableCell<FileInfo, Long>() {
-                                @Override
-                                protected void updateItem(Long item, boolean empty) {
-                                    super.updateItem(item, empty);
-                                    if (item == null || empty) {
-                                        setText(null);
-                                        setStyle("");
-                                    } else {
-                                        String text = String.format("%,d bytes", item);
-                                        if (item == -1L) {
-                                            text = "[DIR]";
-                                        }
-                                        setText(text);
-                                    }
-                                }
-                            };
-                        });
-                        fileSizeColumn.setPrefWidth(120);
-
-                        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-                        TableColumn<FileInfo, String> fileDateColumn = new TableColumn<>("Дата изменения");
-                        try {
-                            fileDateColumn.setCellValueFactory(param ->
-                                    new SimpleStringProperty(param.getValue().getLastModified().format(dtf)));
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                        fileDateColumn.setPrefWidth(120);
-
-                        serverFilesTable.getColumns().clear();
-                        serverFilesTable.getColumns().addAll(fileTypeColumn, filenameColumn, fileSizeColumn, fileDateColumn);
-                        serverFilesTable.getSortOrder().add(fileTypeColumn);
-
-                        serverFilesTable.setOnMouseClicked(new EventHandler<MouseEvent>() {
-                            @Override
-                            public void handle(MouseEvent event) {
-                                if (event.getClickCount() == 2) {
-                                    try {
-                                        if (serverFilesTable.getSelectionModel().getSelectedItem().getType() == FileInfo.FileType.DIRECTORY) {
-                                            net.sendCmd(new PathInRequest(serverFilesTable.getSelectionModel().getSelectedItem().getFilename()));
-                                            updateList(files);
-                                        }
-                                    } catch (Exception ignored) {
-                                    }
-                                }
-                            }
-                        });
-
+//                        listView.getItems().addAll(files.getFileInfos().toString());
                         updateList(files);
                     });
                     break;
@@ -336,89 +355,107 @@ public class Controller implements Initializable {
         });
     }
 
-    public void updatePath(String path) {
+    private void updatePath(String path) {
         serverPathField.setText(path);
     }
 
-    public void updateList(ListResponse files) {
+    private void updateList(ListResponse files) {
         serverFilesTable.getItems().clear();
-        serverFilesTable.getItems().addAll(new ArrayList<>(files.getFileInfos()));
+        if (files != null)
+            serverFilesTable.getItems().addAll(new ArrayList<>(files.getFileInfos()));
         serverFilesTable.sort();
     }
 
-    public String getSelectedFilename() {
+    private String getSelectedFilename() {
         if (!serverFilesTable.isFocused()) {
             return null;
         }
         return serverFilesTable.getSelectionModel().getSelectedItem().getFilename();
     }
 
-    public void copyBtnAction(ActionEvent actionEvent) {
+    private String getSelectedType() {
+        if (!serverFilesTable.isFocused()) {
+            return null;
+        }
+        return serverFilesTable.getSelectionModel().getSelectedItem().getType().getName();
+    }
+
+    public void copyBtnAction() {
         ClientPanelController clientPC = (ClientPanelController) clientPanel.getProperties().get("ctrl");
 
-        try {
-            if (getSelectedFilename() == null && clientPC.getSelectedFilename() == null) {
-                Alert alert = new Alert(Alert.AlertType.ERROR, "Ни один файл не был выбран", ButtonType.OK);
-                alert.showAndWait();
-                return;
-            }
-        } catch (NullPointerException e) {
-            Alert alert = new Alert(Alert.AlertType.ERROR, "Ни один файл не был выбран", ButtonType.OK);
-            alert.showAndWait();
-            return;
-        }
-
-        try {
-            if (clientPC.getSelectedFilename() != null) {
-                Path srcFilePath = Paths.get(clientPC.pathField.getText(), clientPC.getSelectedFilename());
-                fileUploadFile = new FileMessage(srcFilePath);
-
-                try (RandomAccessFile randomAccessFile = new RandomAccessFile(fileUploadFile.getFile(), "r")) {
-                    randomAccessFile.seek(fileUploadFile.getStarPos());
-//                    lastLength = (int) randomAccessFile.length() / 10;
-//                    lastLength = 1024 * 10;
-                    lastLength = 1048576 / 2;
-                    if (randomAccessFile.length() < lastLength) {
-                        lastLength = (int) randomAccessFile.length();
+        if (net != null && net.isConnected()) {
+            if (authOk) {
+                try {
+                    if (getSelectedFilename() == null && clientPC.getSelectedFilename() == null || clientPC.getSelectedType().equals("D")) {
+                        Alert alert = new Alert(Alert.AlertType.ERROR, "Ни один файл не был выбран", ButtonType.OK);
+                        alert.showAndWait();
+                        return;
                     }
-                    byte[] bytes = new byte[lastLength];
-                    if ((byteRead = randomAccessFile.read(bytes)) != -1) {
-                        fileUploadFile.setEndPos(byteRead);
-                        fileUploadFile.setBytes(bytes);
-                        net.sendCmd(fileUploadFile);
-                    } else {
-                    }
-
-                    uploadStart = 0;
-                    cancelUpload = false;
-                    progressForm = new ProgressForm(fileUploadFile.getName());
-                    progressForm.setProgress(uploadStart);
-                    progressForm.activateProgressBar();
-
-                    log.debug("channelActive: " + byteRead);
-                } catch (IOException e) {
-                    e.printStackTrace();
+                } catch (NullPointerException e) {
+                    Alert alert = new Alert(Alert.AlertType.ERROR, "Ни один файл не был выбран", ButtonType.OK);
+                    alert.showAndWait();
+                    return;
                 }
-//                net.sendCmd(new FileMessage(srcPath));
+
+                try {
+                    if (clientPC.getSelectedFilename() != null) {
+                        Path srcFilePath = Paths.get(clientPC.pathField.getText(), clientPC.getSelectedFilename());
+                        fileUploadFile = new FileMessage(srcFilePath);
+                        uploadFile = new File(fileUploadFile.getStrPath());
+                        try (RandomAccessFile randomAccessFile = new RandomAccessFile(uploadFile, "r")) {
+                            randomAccessFile.seek(fileUploadFile.getStarPos());
+//                    lastLength = 1024 * 10;
+                            lastLength = 1048576 / 2;
+                            if (randomAccessFile.length() < lastLength) {
+                                lastLength = (int) randomAccessFile.length();
+                            }
+                            byte[] bytes = new byte[lastLength];
+                            if ((byteRead = randomAccessFile.read(bytes)) != -1) {
+                                fileUploadFile.setEndPos(byteRead);
+                                fileUploadFile.setBytes(bytes);
+                                net.sendCmd(fileUploadFile);
+                            }
+
+                            uploadStart = 0;
+                            cancelUpload = false;
+                            progressForm = new ProgressForm(fileUploadFile.getName());
+                            progressForm.setProgress(uploadStart);
+                            progressForm.activateProgressBar();
+
+                            log.debug("channelActive: " + byteRead);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+
+                    if (getSelectedFilename() != null) {
+                        if (Objects.equals(getSelectedType(), "F")) {
+                            downloadStart = 0;
+                            net.sendCmd(new FileRequest(getSelectedFilename()));
+                            progressForm = new ProgressForm(getSelectedFilename());
+                            progressForm.setProgress(downloadStart);
+                            progressForm.activateProgressBar();
+                        } else {
+                            Alert alert = new Alert(Alert.AlertType.ERROR, "Ни один файл не был выбран", ButtonType.OK);
+                            alert.showAndWait();
+                        }
+                    }
+
+                } catch (Exception e) {
+                    System.out.println(e.getMessage());
+                }
+            } else {
+                Alert alert = new Alert(Alert.AlertType.ERROR, "Вы не аутентифицированы", ButtonType.OK);
+                alert.showAndWait();
             }
-
-            if (getSelectedFilename() != null) {
-                copyBtn.getStyleClass().add("copyBtnDefHoverDownl");
-                downloadStart = 0;
-                net.sendCmd(new FileRequest(getSelectedFilename()));
-
-                progressForm = new ProgressForm(getSelectedFilename());
-                progressForm.setProgress(downloadStart);
-                progressForm.activateProgressBar();
-            }
-
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
+        } else {
+            Alert alert = new Alert(Alert.AlertType.ERROR, "Нет подключения к серверу", ButtonType.OK);
+            alert.showAndWait();
         }
 
     }
 
-    public void createDirBtnAction(ActionEvent actionEvent) {
+    public void createDirBtnAction() {
         ClientPanelController clientPC = (ClientPanelController) clientPanel.getProperties().get("ctrl");
 
         if (!clientPC.isFocusedTable() && !serverFilesTable.isFocused() && !serverPathField.isFocused()) {
@@ -448,27 +485,32 @@ public class Controller implements Initializable {
                         e.printStackTrace();
                     }
                 });
+                return;
             }
 
-            if (serverFilesTable.isFocused() || serverPathField.isFocused()) {
-                createDirForm = new CreateDirForm();
-                createDirForm.activateForm();
-                createDirForm.getTextField().setOnAction(action -> {
-                    if (createDirForm.getTextField().getText().equals("")) {
-                        createDirForm.getLabel().setTextFill(Color.color(1, 0, 0));
-                        createDirForm.getLabel().setText("Задано пустое имя директории");
-                    } else {
-                        net.sendCmd(new CreateDirRequest(createDirForm.getTextField().getText()));
-                    }
-                });
+            if (net.isConnected() && authOk) {
+                if (serverFilesTable.isFocused() || serverPathField.isFocused()) {
+                    createDirForm = new CreateDirForm();
+                    createDirForm.activateForm();
+                    createDirForm.getTextField().setOnAction(action -> {
+                        if (createDirForm.getTextField().getText().equals("")) {
+                            createDirForm.getLabel().setTextFill(Color.color(1, 0, 0));
+                            createDirForm.getLabel().setText("Задано пустое имя директории");
+                        } else {
+                            net.sendCmd(new CreateDirRequest(createDirForm.getTextField().getText()));
+                        }
+                    });
+                }
+            } else {
+                Alert alert = new Alert(Alert.AlertType.ERROR, "Вы не подключены к серверу", ButtonType.OK);
+                alert.showAndWait();
             }
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
     }
 
-    public void deleteBtnAction(ActionEvent actionEvent) {
-
+    public void deleteBtnAction() {
         ClientPanelController cpc = (ClientPanelController) clientPanel.getProperties().get("ctrl");
 
         try {
@@ -529,7 +571,7 @@ public class Controller implements Initializable {
 
     }
 
-    public void deleteDirRecursively(File baseDirectory) throws IOException {
+    private void deleteDirRecursively(File baseDirectory) throws IOException {
         File[] files = baseDirectory.listFiles();
         assert files != null;
         for (File file : files) {
@@ -549,7 +591,7 @@ public class Controller implements Initializable {
         }
     }
 
-    public boolean isDirectoryEmpty(File directory) {
+    private boolean isDirectoryEmpty(File directory) {
         String[] files = directory.list();
         try {
             if (files != null) {
@@ -565,16 +607,13 @@ public class Controller implements Initializable {
         }
     }
 
-    public void btnExitAction(ActionEvent actionEvent) {
-        Platform.exit();
-        net.closeChannel();
+    public void btnPathUpAction() {
+        if (Objects.requireNonNull(net).isConnected() && authOk) {
+            net.sendCmd(new PathUpRequest());
+        }
     }
 
-    public void btnPathUpAction(ActionEvent actionEvent) {
-        net.sendCmd(new PathUpRequest());
-    }
-
-    public void showConsole(ActionEvent actionEvent) {
+    public void showConsole() {
         console.setVisible(!console.isVisible());
         if (console.isVisible()) {
             console.setPrefWidth(300);
@@ -585,31 +624,56 @@ public class Controller implements Initializable {
         }
     }
 
-    public void send(ActionEvent actionEvent) {
-        net.sendCmd(new ConsoleMessage(input.getText()));
-        input.clear();
+    public void sendConsoleMsg() {
+        if (Objects.requireNonNull(net).isConnected()) {
+            if (authOk) {
+                net.sendCmd(new ConsoleMessage(input.getText()));
+                input.clear();
+            } else {
+                input.clear();
+                Alert alert = new Alert(Alert.AlertType.ERROR, "Вы не утентифицированы", ButtonType.OK);
+                alert.showAndWait();
+            }
+        } else {
+            input.clear();
+            Alert alert = new Alert(Alert.AlertType.ERROR, "Вы не подключены к серверу", ButtonType.OK);
+            alert.showAndWait();
+        }
     }
 
-    public void btnHomePathAction(ActionEvent actionEvent) {
-        net.sendCmd(new ListRequest());
+    public void btnHomePathAction() {
+        if (Objects.requireNonNull(net).isConnected() && authOk) {
+            net.sendCmd(new ListRequest());
+        }
     }
 
-    public void connectToServer(ActionEvent actionEvent) {
-        if (!net.isConnected() || !authOk) {
+    public void connectToServer() {
+        if (net == null || !net.isConnected() || !authOk) {
             connectToNet();
         }
     }
 
     public void disconnectFromServer(ActionEvent actionEvent) {
         try {
-            if (net.isConnected() || authOk) {
+            if (Objects.requireNonNull(net).isConnected() || authOk) {
                 net.closeChannel();
                 authOk = false;
                 updatePath(null);
                 updateList(null);
+                net = null;
+            } else {
+                Alert alert = new Alert(Alert.AlertType.ERROR, "Вы не подключены к серверу", ButtonType.OK);
+                alert.showAndWait();
             }
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    public void btnExitAction() {
+        Platform.exit();
+        if (Objects.requireNonNull(net).isConnected() || authOk) {
+            net.closeChannel();
         }
     }
 }

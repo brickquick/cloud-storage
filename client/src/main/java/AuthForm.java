@@ -14,19 +14,19 @@ import lombok.Getter;
 @Getter
 public class AuthForm {
     private final Stage dialogStage;
-    private Label topLabelAuth = new Label("Аутентификация");
-    private Label labelAuthLogin = new Label("Логин:");
-    private Label labelAuthPass = new Label("Пароль:");
-    private final TextField loginAuthField = new TextField();
+    private final Label topLabelAuth = new Label("Аутентификация");
+    private final Label labelAuthLogin = new Label("Логин:");
+    private final Label labelAuthPass = new Label("Пароль:");
+    private final TextField loginAuthField = new TextField("lolk");
     private final PasswordField passAuthField = new PasswordField();
     private final Hyperlink regLink = new Hyperlink("Зарегистрироваться");
 
-    private Label topLabelReg = new Label("Регистрация");
-    private Label labelRegLogin = new Label("Придумайте логин:");
+    private final Label topLabelReg = new Label("Регистрация");
+    private final Label labelRegLogin = new Label("Придумайте логин:");
     private final TextField loginRegField = new TextField();
-    private Label labelRegPass1 = new Label("Придумайте пароль:");
+    private final Label labelRegPass1 = new Label("Придумайте пароль:");
     private final PasswordField passRegField1 = new PasswordField();
-    private Label labelRegPass2 = new Label("Повторите пароль:");
+    private final Label labelRegPass2 = new Label("Повторите пароль:");
     private final PasswordField passRegField2 = new PasswordField();
     private final Hyperlink authLink = new Hyperlink("Войти в существующий аккаунт");
 
@@ -44,6 +44,7 @@ public class AuthForm {
         vBoxEnter.getChildren().add(labelAuthLogin);
         vBoxEnter.getChildren().add(loginAuthField);
         vBoxEnter.getChildren().add(labelAuthPass);
+        passAuthField.setText("123");
         vBoxEnter.getChildren().add(passAuthField);
         vBoxEnter.getChildren().add(regLink);
 
@@ -64,12 +65,9 @@ public class AuthForm {
 
         Scene sceneReg = new Scene(vBoxReg);
 
-        regLink.setOnAction(action -> {
-            dialogStage.setScene(sceneReg);
-        });
-        authLink.setOnAction(action -> {
-            dialogStage.setScene(sceneAuth);
-        });
+        regLink.setOnAction(action -> dialogStage.setScene(sceneReg));
+
+        authLink.setOnAction(action -> dialogStage.setScene(sceneAuth));
 
         loginAuthField.setOnAction(action -> {
             if (!loginAuthField.getText().equals("")) {
@@ -103,10 +101,15 @@ public class AuthForm {
                 labelRegPass1.setText("Пароль пуст:");
             }
         });
+
     }
 
-    public void activateForm()  {
+    public void activateForm() {
         dialogStage.show();
+    }
+
+    public boolean isShowing() {
+        return dialogStage.isShowing();
     }
 
     public void closeForm() {

@@ -2,11 +2,9 @@ import javafx.application.Platform;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
-import javafx.scene.input.MouseEvent;
 import lombok.extern.slf4j.Slf4j;
 import qbrick.FileInfo;
 
@@ -25,19 +23,16 @@ import static java.nio.file.StandardWatchEventKinds.*;
 public class ClientPanelController implements Initializable {
 
     @FXML
-    TableView<FileInfo> filesTable;
+    public TableView<FileInfo> filesTable;
     @FXML
     ComboBox<String> disksBox;
     @FXML
     TextField pathField;
 
-    private final WatchService watchService = FileSystems.getDefault().newWatchService();
+    private WatchService watchService;
 
     private static final Path ROOT_DIR = Paths.get("client/root").toAbsolutePath();
     private static Path currentPath;
-
-    public ClientPanelController() throws IOException {
-    }
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -48,8 +43,7 @@ public class ClientPanelController implements Initializable {
 
         TableColumn<FileInfo, String> filenameColumn = new TableColumn<>("Имя");
         filenameColumn.setCellValueFactory(param -> new SimpleStringProperty(param.getValue().getFilename()));
-        filenameColumn.setPrefWidth(200);
-        filenameColumn.getStyleClass().add("italic");
+        filenameColumn.setPrefWidth(190);
 
         TableColumn<FileInfo, Long> fileSizeColumn = new TableColumn<>("Размер");
         fileSizeColumn.setCellValueFactory(param -> new SimpleObjectProperty<>(param.getValue().getSize()));
@@ -87,21 +81,11 @@ public class ClientPanelController implements Initializable {
         }
         disksBox.getSelectionModel().select(0);
 
-        filesTable.setOnMouseClicked(new EventHandler<MouseEvent>() {
-            @Override
-            public void handle(MouseEvent event) {
-                if (event.getClickCount() == 2) {
-                    try {
-                        Path path = Paths.get(pathField.getText()).resolve(filesTable.getSelectionModel().getSelectedItem().getFilename());
-                        if (Files.isDirectory(path)) {
-                            updatePath(path);
-                            updateList(path);
-                        }
-                    } catch (Exception ignored) {
-                    }
-                }
-            }
-        });
+        try {
+            watchService = FileSystems.getDefault().newWatchService();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
         Thread watchThread = new Thread(() -> {
             while (true) {
@@ -109,13 +93,11 @@ public class ClientPanelController implements Initializable {
                     WatchKey key = watchService.take();
                     if (key.isValid()) {
                         List<WatchEvent<?>> events = key.pollEvents();
-                        for (WatchEvent<?> event: events) {
+                        for (WatchEvent<?> event : events) {
                             Path watchedPath = (Path) key.watchable();
                             System.out.println(watchedPath);
                             log.debug("kind {}, context {}", event.kind(), event.context());
-                            Platform.runLater(() -> {
-                                updateList(currentPath);
-                            });
+                            Platform.runLater(() -> updateList(currentPath));
                             Thread.sleep(1000);
                         }
                         key.reset();
@@ -146,10 +128,6 @@ public class ClientPanelController implements Initializable {
         }
     }
 
-    public void clearList(Path path) {
-        filesTable.getItems().clear();
-    }
-
     public void updatePath(Path path) {
         try {
             pathField.setText(path.normalize().toAbsolutePath().toString());
@@ -167,6 +145,13 @@ public class ClientPanelController implements Initializable {
         return filesTable.getSelectionModel().getSelectedItem().getFilename();
     }
 
+    public String getSelectedType() {
+        if (!filesTable.isFocused()) {
+            return null;
+        }
+        return filesTable.getSelectionModel().getSelectedItem().getType().getName();
+    }
+
     public boolean isFocusedTable() {
         return filesTable.isFocused() || pathField.isFocused();
     }
@@ -181,7 +166,7 @@ public class ClientPanelController implements Initializable {
         updateList(Paths.get(element.getSelectionModel().getSelectedItem()));
     }
 
-    public void btnPathUpAction(ActionEvent actionEvent) {
+    public void btnPathUpAction() {
         Path upperPath = getCurrentPath().getParent();
         if (upperPath != null) {
             updatePath(upperPath);
@@ -193,5 +178,20 @@ public class ClientPanelController implements Initializable {
         currentPath = ROOT_DIR;
         updatePath(currentPath);
         updateList(currentPath);
+    }
+
+    public void pathIn() {
+        try {
+            Path path = Paths.get(pathField.getText()).resolve(filesTable.getSelectionModel().getSelectedItem().getFilename());
+            if (Files.isDirectory(path)) {
+                updatePath(path);
+                updateList(path);
+            }
+        } catch (Exception ignored) {
+        }
+    }
+
+    public TableView<FileInfo> getFilesTable() {
+        return filesTable;
     }
 }

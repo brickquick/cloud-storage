@@ -8,8 +8,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.socket.SocketChannel;
 import lombok.extern.slf4j.Slf4j;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -22,7 +20,7 @@ public class ServerFileMessageHandler extends SimpleChannelInboundHandler<Comman
     private Path HOME_PATH = Paths.get("server", "root");
     private Path currentPath;
 
-    private AuthService authService;
+    private final AuthService authService;
     private boolean authOk = false;
 
     private static int cnt = 0;
@@ -31,6 +29,7 @@ public class ServerFileMessageHandler extends SimpleChannelInboundHandler<Comman
     private volatile long downloadStart = 0;
     private volatile int lastLength = 0;
     private FileMessage fileUploadFile;
+    private File uploadFile;
 
     private final WatchService watchService = FileSystems.getDefault().newWatchService();
 
@@ -39,12 +38,10 @@ public class ServerFileMessageHandler extends SimpleChannelInboundHandler<Comman
     }
 
     @Override
-    public void channelActive(ChannelHandlerContext ctx) throws Exception {
+    public void channelActive(ChannelHandlerContext ctx) {
         cnt++;
         name = "user#" + cnt;
         log.debug("Client {} connected!", name);
-//        ctx.writeAndFlush(new PathResponse(currentPath.toString()));
-//        ctx.writeAndFlush(new ListResponse(currentPath));
         ctx.writeAndFlush(new ConsoleMessage(String.format("[%s]: %s", "Server", "connected successfully")));
         Authentication startAuth = new Authentication(null, null);
         startAuth.setAuthOk(false);
@@ -87,9 +84,9 @@ public class ServerFileMessageHandler extends SimpleChannelInboundHandler<Comman
                 case FILE_REQUEST:
                     FileRequest fileRequest = (FileRequest) cmd;
                     fileUploadFile = new FileMessage(currentPath.resolve(fileRequest.getName()));
-                    try (RandomAccessFile randomAccessFile = new RandomAccessFile(fileUploadFile.getFile(), "r")) {
+                    uploadFile = new File(String.valueOf(currentPath.resolve(fileRequest.getName())));
+                    try (RandomAccessFile randomAccessFile = new RandomAccessFile(uploadFile, "r")) {
                         randomAccessFile.seek(fileUploadFile.getStarPos());
-//                    lastLength = (int) randomAccessFile.length() / 10;
 //                    lastLength = 1024 * 10;
                         lastLength = 1048576 / 2;
                         if (randomAccessFile.length() < lastLength) {
@@ -100,8 +97,8 @@ public class ServerFileMessageHandler extends SimpleChannelInboundHandler<Comman
                             fileUploadFile.setEndPos(byteRead);
                             fileUploadFile.setBytes(bytes);
                             ctx.writeAndFlush(fileUploadFile);
-                        } else {
                         }
+
                         log.debug("channelActive: " + byteRead);
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -110,7 +107,7 @@ public class ServerFileMessageHandler extends SimpleChannelInboundHandler<Comman
                 case DOWNLOAD_STATUS:
                     DownloadStatus downloadStatus = (DownloadStatus) cmd;
                     long uploadStart = downloadStatus.getStart();
-                    try (RandomAccessFile randomAccessFile = new RandomAccessFile(fileUploadFile.getFile(), "r");) {
+                    try (RandomAccessFile randomAccessFile = new RandomAccessFile(uploadFile, "r")) {
                         double pr = (double) uploadStart * 100L / randomAccessFile.length();
                         log.debug("start: " + uploadStart + "; % = " + pr);
                         fileUploadFile.setProgress(pr);
@@ -139,6 +136,7 @@ public class ServerFileMessageHandler extends SimpleChannelInboundHandler<Comman
                                 ctx.writeAndFlush(fileUploadFile);
 //                                randomAccessFile.close();
                                 fileUploadFile = null;
+                                uploadFile = null;
                             }
                         }
                     } catch (IOException e) {
@@ -165,8 +163,6 @@ public class ServerFileMessageHandler extends SimpleChannelInboundHandler<Comman
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
-//                Files.write(currentPath.resolve(message.getName()), message.getBytes());
-//                ctx.writeAndFlush(new ListResponse(currentPath));
                     break;
                 case DELETE_REQUEST:
                     DeleteRequest deleteRequest = (DeleteRequest) cmd;
@@ -183,10 +179,6 @@ public class ServerFileMessageHandler extends SimpleChannelInboundHandler<Comman
                                 Files.deleteIfExists(srcPath);
                             }
                         }
-//                    Files.walk(srcFile.toPath())
-//                            .sorted(Comparator.reverseOrder())
-//                            .map(Path::toFile)
-//                            .forEach(File::delete);
                     } else {
                         Files.deleteIfExists(srcPath);
                     }
@@ -267,7 +259,7 @@ public class ServerFileMessageHandler extends SimpleChannelInboundHandler<Comman
             switch (cmd.getType()) {
                 case AUTHENTICATION:
                     Authentication authentication = (Authentication) cmd;
-                    authOk = authService.getAccByLoginPass(authentication.getLogin(), authentication.getPass()) != null;
+                    authOk = authService.isAccExist(authentication.getLogin(), authentication.getPass());
                     authentication.setAuthOk(authOk);
                     ctx.writeAndFlush(authentication);
                     if (authOk) {
@@ -280,16 +272,14 @@ public class ServerFileMessageHandler extends SimpleChannelInboundHandler<Comman
                     break;
                 case REGISTRATION:
                     Registration reg = (Registration) cmd;
-                    if (!authService.isLoginBusy(reg.getLogin())){
-                        authService.addAcc(reg.getLogin(), reg.getPass());
+                    if (authService.addAcc(reg.getLogin(), reg.getPass())) {
                         System.out.println("NOTT BUSYYyyyyyyyyyyyyyyyyyy");
                         reg.setLoginBusy(false);
-                        ctx.writeAndFlush(reg);
                     } else {
                         System.out.println("BUSYYyyyyyyyyyyyyyyyyyy");
                         reg.setLoginBusy(true);
-                        ctx.writeAndFlush(reg);
                     }
+                    ctx.writeAndFlush(reg);
                     break;
             }
         }

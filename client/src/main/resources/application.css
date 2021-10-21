@@ -69,6 +69,7 @@
     -fx-text-background-color: white;
 }
 
+/*
 .table-view .table-cell: hover {
     -fx-background-color: lightblue;
     -fx-text-background-color: green;
@@ -77,67 +78,24 @@
 .table-view .table-cell: selected {
     -fx-text-background-color: green;
 }
+*/
 
 .table-view .table-row-cell: hover {
-    -fx-text-color: green;
-    -fx-background-color: #111111;
+    -fx-background-color: black;
+}
+.table-view: focused .table-row-cell:selected {
+    -fx-background-color: #005797;
 }
 
 .table-row-cell: odd{
-    -fx-background-color: #93f9b911;
-    -fx-background-insets: 0, 0 0 1 0;
-    -fx-padding: 0.0em;
+    -fx-background-color: #00000040;
 }
 .table-row-cell: even{
-    -fx-background-color: #1dbbdd11;
-    -fx-background-insets: 0, 0 0 1 0;
-    -fx-padding: 0.0em;
-}
-.table-row-cell:selected {
-    -fx-background-color: #005797;
-    -fx-background-insets: 0;
-    -fx-background-radius: 1;
+    -fx-background-color: #00000080;
 }
 .table-row-cell: highlight {
     -fx-background-color: #111111;
 }
-
-/*
-.table{
-    -fx-background-color: transparent;
-   -fx-border-color: transparent;
-}
-.table:focused{
-    -fx-background-color: transparent;
-}
-.table .column-header-background{
-    -fx-background-color: transparent;
-}
-.table .column-header-background .label{
-    -fx-background-color: transparent;
-    -fx-text-fill: white;
-    -fx-font-size: 14px;
-}
-.table-column {
-  -fx-alignment: center;
-    -fx-background-color: transparent;
-}
-.table .column-header {
-    -fx-background-color: transparent;
-}
-.table-row-cell{
-    -fx-background-color: transparent;
-    -fx-background-insets: 0, 0 0 1 0;
-    -fx-padding: 0.0em;
-    -fx-font-size:13px;
-    //-fx-border-color : red;
-}
-.table-row-cell:odd{
-    -fx-background-color: transparent;
-    -fx-background-insets: 0, 0 0 1 0;
-    -fx-padding: 0.0em;
-}
-*/
 
 
 #btnHome {
@@ -166,16 +124,51 @@
     -fx-background-size: stretch;
 }
 
-
-.copyBtnDef.button {
+.copyBtn.button {
+    -fx-background-color: black;
     -fx-background-image: url(assets/copyBtn.png);
     -fx-background-size: stretch;
 }
-.copyBtnDef.button: hover {
+.copyBtn.button: hover {
     -fx-background-image: url(assets/copyBtnHover.png);
     -fx-background-size: stretch;
 }
-.copyBtnDef.button: pressed {
+.copyBtn.button: pressed {
     -fx-background-image: url(assets/copyBtn.png);
     -fx-background-size: stretch;
 }
+
+.copyBtnD.button {
+    -fx-background-color: black;
+    -fx-background-image: url(assets/copyBtn.png);
+    -fx-background-size: stretch;
+}
+.copyBtnD.button: hover {
+    -fx-background-image: url(assets/copyBtnHoverDownload.png);
+    -fx-background-size: stretch;
+}
+.copyBtnD.button: pressed {
+    -fx-background-image: url(assets/copyBtnDownDownload.png);
+    -fx-background-size: stretch;
+}
+
+.copyBtnU.button {
+    -fx-background-color: black;
+    -fx-background-image: url(assets/copyBtn.png);
+    -fx-background-size: stretch;
+}
+.copyBtnU.button: hover {
+    -fx-background-image: url(assets/copyBtnHoverUpload.png);
+    -fx-background-size: stretch;
+}
+.copyBtnU.button: pressed {
+    -fx-background-image: url(assets/copyBtnDownUpload.png);
+    -fx-background-size: stretch;
+}
+
+/*
+#copyBtn: pressed {
+    -fx-background-image: url(assets/copyBtnDownUpload.png);
+    -fx-background-size: stretch;
+}
+*/

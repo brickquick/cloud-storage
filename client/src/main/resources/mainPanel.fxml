@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<?language JavaScript?>
 
 <?import javafx.geometry.*?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.text.*?>
 
-<VBox xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml" fx:controller="Controller">
+<VBox stylesheets="@application.css" xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml" fx:controller="Controller">
     <MenuBar>
         <Menu text="Файл">
             <MenuItem onAction="#connectToServer" text="Подключиться к серверу" />
@@ -16,23 +15,16 @@
             <MenuItem onAction="#btnExitAction" text="Выйти из программы" />
         </Menu>
     </MenuBar>
-    <HBox fx:id="hbox">
+    <HBox fx:id="hbox" VBox.vgrow="ALWAYS">
 
-        <fx:include fx:id="clientPanel" source="clientPanel.fxml" VBox.vgrow="ALWAYS" prefWidth="490"/>
+        <fx:include fx:id="clientPanel" source="clientPanel.fxml" prefHeight="639" prefWidth="460" VBox.vgrow="ALWAYS"/>
 
         <VBox alignment="CENTER" spacing="50.0">
-            <Button fx:id="copyBtn" alignment="BOTTOM_CENTER" focusTraversable="false" onAction="#copyBtnAction" prefHeight="60"
-                    prefWidth="150" text="Копировать" textAlignment="CENTER" textFill="WHITE"
-                    HBox.hgrow="ALWAYS" />
-            <fx:script>
-                
-            </fx:script>
-            <Button focusTraversable="false" maxWidth="Infinity" text="Переименовать"
-                    HBox.hgrow="ALWAYS" />
-            <Button focusTraversable="false" maxWidth="Infinity" onAction="#createDirBtnAction" text="Создать папку"
-                    HBox.hgrow="ALWAYS" />
-            <Button focusTraversable="false" maxWidth="Infinity" onAction="#deleteBtnAction" text="Удалить"
-                    HBox.hgrow="ALWAYS" />
+            <Button fx:id="copyBtn" alignment="BOTTOM_CENTER" focusTraversable="false" onAction="#copyBtnAction"
+                    prefHeight="56" prefWidth="245" text="Копировать" textFill="WHITE" HBox.hgrow="ALWAYS" />
+            <Button focusTraversable="false" maxWidth="Infinity" text="Переименовать" HBox.hgrow="ALWAYS" />
+            <Button focusTraversable="false" maxWidth="Infinity" onAction="#createDirBtnAction" text="Создать папку" HBox.hgrow="ALWAYS" />
+            <Button focusTraversable="false" maxWidth="Infinity" onAction="#deleteBtnAction" text="Удалить" HBox.hgrow="ALWAYS" />
             <padding>
                 <Insets bottom="5.0" left="5.0" right="5.0" top="100.0" />
             </padding>
@@ -41,27 +33,27 @@
         <HBox prefWidth="490">
             <VBox>
                 <HBox alignment="CENTER" prefHeight="100.0" prefWidth="248.0">
-                    <Text text="cloud☁server" textAlignment="CENTER">
+                    <Text fill="white" text="cloud☁server" textAlignment="CENTER">
                   <HBox.margin>
                      <Insets bottom="85.0" />
                   </HBox.margin></Text>
                 </HBox>
                 <HBox>
-                    <Button fx:id="btnHome" onAction="#btnHomePathAction" text="⌂" />
+                    <Button fx:id="btnHome" onAction="#btnHomePathAction" text="⌂" textFill="#00000000" />
                     <TextField fx:id="serverPathField" editable="false" HBox.hgrow="ALWAYS" />
-                    <Button fx:id="btnUp" onAction="#btnPathUpAction" text="↑" />
+                    <Button fx:id="btnUp" onAction="#btnPathUpAction" text="↑" textFill="#00000000" />
                 </HBox>
                 <TableView fx:id="serverFilesTable" VBox.vgrow="ALWAYS" />
             </VBox>
         </HBox>
 
-        <VBox fx:id="console" prefWidth="0" visible="false">
-            <Text fx:id="consoleText" text="Console:" textAlignment="CENTER" />
-            <ListView fx:id="listView" layoutX="5" layoutY="5" prefHeight="500" prefWidth="300" />
-            <TextField fx:id="input" layoutX="5" layoutY="440" onAction="#send" prefHeight="50" prefWidth="300" />
+        <VBox fx:id="console" visible="false">
+            <Text fill="white" text="Console:" textAlignment="CENTER" />
+            <ListView fx:id="listView" prefHeight="500" prefWidth="300" VBox.vgrow="ALWAYS" />
+            <TextField fx:id="input" onAction="#sendConsoleMsg" prefHeight="50" prefWidth="300" />
         </VBox>
         <padding>
-            <Insets bottom="5.0" left="5.0" right="5.0" top="4" />
+            <Insets bottom="5.0" left="5.0" right="5.0" top="5" />
         </padding>
     </HBox>
 </VBox>

@@ -6,17 +6,17 @@
 
 <?import javafx.geometry.Insets?>
 <VBox xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml" fx:controller="ClientPanelController">
-    <HBox alignment="CENTER" prefHeight="100.0" prefWidth="248.0">
-        <Text text="client" textAlignment="CENTER">
+    <HBox alignment="CENTER">
+        <Text text="client" textAlignment="CENTER" fill="white">
         <HBox.margin>
             <Insets bottom="85" left="95"/>
         </HBox.margin></Text>
     </HBox>
     <HBox>
         <ComboBox fx:id="disksBox" onAction="#selectDiskAction" />
-        <Button fx:id="btnHome" onAction="#btnHomePathAction" text="⌂" />
+        <Button fx:id="btnHome" onAction="#btnHomePathAction" text="⌂" textFill="#00000000" />
         <TextField fx:id="pathField" editable="false" HBox.hgrow="ALWAYS" />
-        <Button fx:id="btnUp" onAction="#btnPathUpAction" text="↑" />
+        <Button fx:id="btnUp" onAction="#btnPathUpAction" text="↑" textFill="#00000000" />
     </HBox>
     <TableView fx:id="filesTable" VBox.vgrow="ALWAYS" />
 

@@ -3,31 +3,15 @@ package qbrick;
 import lombok.extern.slf4j.Slf4j;
 
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 
 @Slf4j
 public class BaseAuthService implements AuthService {
-    private class Entry {
-        private final String login;
-        private final String pass;
-        private int id;
-
-        public Entry(int id, String login, String pass) {
-            this.id = id;
-            this.login = login;
-            this.pass = pass;
-        }
-    }
 
     private static final String CON_STR = "jdbc:sqlite:server/src/main/resources/entry.db";
 
     private static Connection connection;
     private static Statement stmt;
     private static ResultSet resultSet;
-
-    private List<Entry> entries = new ArrayList<>();
 
     public BaseAuthService() {
         start();
@@ -43,11 +27,8 @@ public class BaseAuthService implements AuthService {
             log.debug("Таблица уже заполнена");
         }
 
-        entries = new ArrayList<>(getAllEntries());
-
         showTable();
     }
-
 
     @Override
     public void showTable() {
@@ -72,71 +53,39 @@ public class BaseAuthService implements AuthService {
         }
     }
 
-//    @Override
-//    public void changeNick(String oldNick, String newNick) {
-//        try(PreparedStatement preparedStatement = connection.prepareStatement(
-//                "UPDATE entries set nick = '" + newNick + "' where nick = '" + oldNick + "' ;")) {
-//            connection.setAutoCommit(false);
-//            preparedStatement.execute();
-//            connection.commit();
-//
-//            entries.removeAll(entries);
-//            entries.addAll(getAllEntries());
-//            log.debug("Изменения в БД произведены успешно");
-//        } catch (SQLException e) {
-//            e.printStackTrace();
-//            log.error("Ошибка с базой данных");
-//        }
-//    }
-
-    @Override
-    public boolean isLoginBusy(String newLogin) {
-        try {
-            resultSet = stmt.executeQuery("SELECT * FROM entries;");
-            while (resultSet.next()) {
-                String login = resultSet.getString("login");
-                if (login.equals(newLogin)) {
-                    return true;
-                }
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-            log.error("Ошибка связанная с базой данных");
-        }
-        return false;
-    }
-
     @Override
     public boolean addAcc(String login, String pass) {
-        if (!isLoginBusy(login)) {
-            try {
+        try {
+            if (!isAccExist(login, pass)) {
                 connection.setAutoCommit(false);
                 String sql = "INSERT INTO entries (login,pass) VALUES ('" + login + "', '" + pass + "');";
                 stmt.executeUpdate(sql);
                 connection.commit();
                 log.debug("INSERT INTO entries successfully");
-
-                entries.removeAll(entries);
-                entries.addAll(getAllEntries());
-                return true;
-            } catch (SQLException e) {
-                e.printStackTrace();
-                log.error("Ошибка записи в базу данных");
-                return false;
             }
-        } else {
+            return true;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            log.error("Ошибка записи в базу данных");
             return false;
         }
     }
 
     @Override
-    public Integer getAccByLoginPass(String login, String pass) {
-        for (Entry o : entries) {
-            if (o.login.equals(login) && o.pass.equals(pass)) {
-                return o.id;
+    public boolean isAccExist(String login, String pass) {
+        try {
+            resultSet = stmt.executeQuery("SELECT login, pass FROM entries");
+            while (resultSet.next()) {
+                if (resultSet.getString("login").equals(login) && resultSet.getString("pass").equals(pass)) {
+                    return true;
+                }
             }
+            return false;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            log.error("Ошибка с базой данных");
+            return false;
         }
-        return null;
     }
 
     @Override
@@ -164,22 +113,6 @@ public class BaseAuthService implements AuthService {
         }
     }
 
-    private List<Entry> getAllEntries() {
-        try {
-            resultSet = stmt.executeQuery("SELECT ID, login, pass FROM entries");
-            while (resultSet.next()) {
-                entries.add(new Entry(
-                        resultSet.getInt("ID"),
-                        resultSet.getString("login"),
-                        resultSet.getString("pass")));
-            }
-            return entries;
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return Collections.emptyList();
-        }
-    }
-
     private static void createTable() throws SQLException {
         String sql = "CREATE TABLE IF NOT EXISTS `entries` (" +
                 "`ID` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL ," +
@@ -190,22 +123,8 @@ public class BaseAuthService implements AuthService {
     }
 
     private void addEntry() throws SQLException {
-        connection.setAutoCommit(false);
-        String sql;
-        if (!isLoginBusy("login1")) {
-            sql = "INSERT INTO entries (login,pass) VALUES ('login1', 'pass1');";
-            stmt.executeUpdate(sql);
-        }
-        if (!isLoginBusy("login2")) {
-            sql = "INSERT INTO entries (login,pass) VALUES ('login2', 'pass2');";
-            stmt.executeUpdate(sql);
-        }
-        if (!isLoginBusy("login3")) {
-            sql = "INSERT INTO entries (login,pass) VALUES ('login3', 'pass3');";
-            stmt.executeUpdate(sql);
-        }
-        connection.commit();
-        log.debug("INSERT INTO entries successfully");
+        addAcc("login1", "pass1");
+        addAcc("login2", "pass2");
+        addAcc("login3", "pass3");
     }
-
 }

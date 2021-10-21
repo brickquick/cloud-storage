@@ -8,17 +8,20 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.serialization.ClassResolvers;
 import io.netty.handler.codec.serialization.ObjectDecoder;
 import io.netty.handler.codec.serialization.ObjectEncoder;
-import io.netty.handler.codec.string.StringDecoder;
-import io.netty.handler.codec.string.StringEncoder;
+import javafx.application.Platform;
+import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonType;
 import lombok.extern.slf4j.Slf4j;
 import qbrick.Command;
 
 @Slf4j
 public class Net {
 
+    private static final int PORT = 8189;
+    private static final String HOST = "localhost";
+
     private static Net INSTANCE;
 
-    private final Callback callback;
     private SocketChannel channel;
 
     public static Net getInstance(Callback callback) {
@@ -29,7 +32,6 @@ public class Net {
     }
 
     Net(Callback callback) {
-        this.callback = callback;
 
         Thread thread = new Thread(() -> {
             EventLoopGroup group = new NioEventLoopGroup();
@@ -41,7 +43,7 @@ public class Net {
                         .channel(NioSocketChannel.class)
                         .handler(new ChannelInitializer<SocketChannel>() {
                             @Override
-                            protected void initChannel(SocketChannel c) throws Exception {
+                            protected void initChannel(SocketChannel c) {
                                 channel = c;
                                 channel.pipeline().addLast(
 //                                        new StringEncoder(),
@@ -54,12 +56,17 @@ public class Net {
                             }
                         });
 
-                ChannelFuture future = bootstrap.connect("localhost", 8189).sync();
+                ChannelFuture future = bootstrap.connect(HOST, PORT).sync();
                 log.debug("Client connected");
-                future.channel().closeFuture().sync(); // block
+                future.channel().closeFuture().sync();
             } catch (Exception e) {
                 log.error("", e);
                 closeChannel();
+                Platform.runLater(() -> {
+                    Alert alert = new Alert(Alert.AlertType.ERROR, "Не удалось подключитья к серверу", ButtonType.OK);
+                    alert.showAndWait();
+                });
+
             } finally {
                 group.shutdownGracefully();
             }
@@ -85,6 +92,7 @@ public class Net {
 
     public void closeChannel() {
         channel.close();
+        channel = null;
     }
 
 }
