@@ -10,7 +10,6 @@ import javafx.stage.WindowEvent;
 import java.util.Objects;
 
 //todo
-// переименование файлов
 // активные пользователи
 public class App extends Application {
 

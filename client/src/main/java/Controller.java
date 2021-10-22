@@ -751,10 +751,12 @@ public class Controller implements Initializable {
     }
 
     public void btnExitAction(ActionEvent actionEvent) {
-        Platform.exit();
-        if (Objects.requireNonNull(net).isConnected() || authOk) {
-            net.closeChannel();
+        if (net != null) {
+            if (net.isConnected()) {
+                net.closeChannel();
+            }
         }
+        Platform.exit();
     }
 
 }
