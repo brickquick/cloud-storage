@@ -9,12 +9,12 @@ import javafx.stage.StageStyle;
 import lombok.Getter;
 
 @Getter
-public class CreateDirForm {
+public class RenameForm {
     private final Stage dialogStage;
-    private TextField textField = new TextField("");
-    private Label label = new Label("Новая директория");
+    private TextField textField;
+    private Label label = new Label("Задайте новое имя");
 
-    public CreateDirForm() {
+    public RenameForm(String name) {
         dialogStage = new Stage();
         dialogStage.initStyle(StageStyle.UTILITY);
         dialogStage.setResizable(false);
@@ -25,11 +25,11 @@ public class CreateDirForm {
         vBox.setSpacing(5);
         vBox.setAlignment(Pos.CENTER);
         vBox.getChildren().add(label);
+        textField = new TextField(name);
         vBox.getChildren().add(textField);
 
         Scene scene = new Scene(vBox);
         dialogStage.setScene(scene);
-
     }
 
     public void activateForm()  {

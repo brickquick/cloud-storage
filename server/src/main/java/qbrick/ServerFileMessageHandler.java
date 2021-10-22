@@ -226,6 +226,22 @@ public class ServerFileMessageHandler extends SimpleChannelInboundHandler<Comman
                         e.printStackTrace();
                     }
                     break;
+                case RENAME_REQUEST:
+                    RenameRequest rename = (RenameRequest) cmd;
+                    try {
+                        String renamePath = currentPath + File.separator + rename.getName();
+                        File renameFile = new File(renamePath);
+                        if (renameFile.renameTo(
+                                new File(currentPath + File.separator + rename.getNewName()))) {
+                            rename.setRenamed(true);
+                        } else {
+                            rename.setRenamed(false);
+                        }
+                        ctx.writeAndFlush(rename);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                    break;
                 case CONSOLE_MESSAGE:
                     ConsoleMessage consoleMessage = (ConsoleMessage) cmd;
                     String message = consoleMessage.getMsg().trim();
@@ -272,13 +288,7 @@ public class ServerFileMessageHandler extends SimpleChannelInboundHandler<Comman
                     break;
                 case REGISTRATION:
                     Registration reg = (Registration) cmd;
-                    if (authService.addAcc(reg.getLogin(), reg.getPass())) {
-                        System.out.println("NOTT BUSYYyyyyyyyyyyyyyyyyyy");
-                        reg.setLoginBusy(false);
-                    } else {
-                        System.out.println("BUSYYyyyyyyyyyyyyyyyyyy");
-                        reg.setLoginBusy(true);
-                    }
+                    reg.setLoginBusy(!authService.addAcc(reg.getLogin(), reg.getPass()));
                     ctx.writeAndFlush(reg);
                     break;
             }

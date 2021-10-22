@@ -60,6 +60,7 @@ public class Controller implements Initializable {
     private File uploadFile;
 
     private ProgressForm progressForm;
+    private RenameForm renameForm;
     private CreateDirForm createDirForm;
     private AuthForm authForm;
 
@@ -322,6 +323,18 @@ public class Controller implements Initializable {
                         e.printStackTrace();
                     }
                     break;
+                case RENAME_REQUEST:
+                    RenameRequest rename = (RenameRequest) cmd;
+                    Platform.runLater(() -> {
+                        if (rename.isRenamed()) {
+                            renameForm.closeForm();
+                            renameForm = null;
+                        } else {
+                            renameForm.getLabel().setTextFill(Color.color(1, 0, 0));
+                            renameForm.getLabel().setText("Файл с таким именем уже существует");
+                        }
+                    });
+                    break;
                 case CREATE_DIR_REQUEST:
                     CreateDirRequest createDirRequest = (CreateDirRequest) cmd;
                     System.out.println("createDirRequest " + createDirRequest.isPossible());
@@ -455,6 +468,70 @@ public class Controller implements Initializable {
 
     }
 
+    public void renameBtnAction() {
+        ClientPanelController cpc = (ClientPanelController) clientPanel.getProperties().get("ctrl");
+
+        try {
+            if (getSelectedFilename() == null && cpc.getSelectedFilename() == null) {
+                Alert alert = new Alert(Alert.AlertType.ERROR, "Ни один файл не был выбран", ButtonType.OK);
+                alert.showAndWait();
+                return;
+            }
+        } catch (NullPointerException e) {
+            Alert alert = new Alert(Alert.AlertType.ERROR, "Ни один файл не был выбран", ButtonType.OK);
+            alert.showAndWait();
+            return;
+        }
+
+        if (cpc.getSelectedFilename() != null) {
+            try {
+                Path srcPath = Paths.get(cpc.pathField.getText(), cpc.getSelectedFilename());
+                File srcFile = new File(String.valueOf(srcPath));
+
+                renameForm = new RenameForm(cpc.getSelectedFilename());
+                renameForm.activateForm();
+                renameForm.getTextField().setOnAction(action -> {
+                    if (renameForm.getTextField().getText().equals("")) {
+                        renameForm.getLabel().setTextFill(Color.color(1, 0, 0));
+                        renameForm.getLabel().setText("Задано пустое имя");
+                    } else {
+                        if (!srcFile.renameTo(new File(String.valueOf(
+                                Paths.get(cpc.pathField.getText(), renameForm.getTextField().getText()))))) {
+                            renameForm.getLabel().setTextFill(Color.color(1, 0, 0));
+                            renameForm.getLabel().setText("Файл с таким именем уже существует");
+                        } else {
+                            renameForm.closeForm();
+                            renameForm = null;
+                        }
+                    }
+                });
+                cpc.updateList(cpc.getCurrentPath());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        if (getSelectedFilename() != null) {
+            String fileName = getSelectedFilename();
+            try {
+                renameForm = new RenameForm(getSelectedFilename());
+                renameForm.activateForm();
+
+                renameForm.getTextField().setOnAction(action -> {
+                    if (renameForm.getTextField().getText().equals("")) {
+                        renameForm.getLabel().setTextFill(Color.color(1, 0, 0));
+                        renameForm.getLabel().setText("Задано пустое имя");
+                    } else {
+                        RenameRequest rename = new RenameRequest(fileName, renameForm.getTextField().getText());
+                        net.sendCmd(rename);
+                    }
+                });
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
     public void createDirBtnAction() {
         ClientPanelController clientPC = (ClientPanelController) clientPanel.getProperties().get("ctrl");
 
@@ -568,7 +645,6 @@ public class Controller implements Initializable {
             }
         }
 
-
     }
 
     private void deleteDirRecursively(File baseDirectory) throws IOException {
@@ -676,4 +752,5 @@ public class Controller implements Initializable {
             net.closeChannel();
         }
     }
+
 }
