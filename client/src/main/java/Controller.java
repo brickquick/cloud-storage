@@ -729,9 +729,13 @@ public class Controller implements Initializable {
         }
     }
 
-    public void disconnectFromServer(ActionEvent actionEvent) {
+    public void disconnectFromServer() {
         try {
-            if (Objects.requireNonNull(net).isConnected() || authOk) {
+            if (net == null) {
+                authOk = false;
+                Alert alert = new Alert(Alert.AlertType.ERROR, "Вы не подключены к серверу", ButtonType.OK);
+                alert.showAndWait();
+            } else if (net.isConnected() || authOk) {
                 net.closeChannel();
                 authOk = false;
                 updatePath(null);
@@ -746,7 +750,7 @@ public class Controller implements Initializable {
         }
     }
 
-    public void btnExitAction() {
+    public void btnExitAction(ActionEvent actionEvent) {
         Platform.exit();
         if (Objects.requireNonNull(net).isConnected() || authOk) {
             net.closeChannel();
