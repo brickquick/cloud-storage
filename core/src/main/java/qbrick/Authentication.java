@@ -7,7 +7,7 @@ public class Authentication extends Command {
     private final String login;
     private final String pass;
     private boolean authOk = false;
-    private boolean accBusy = true;
+    private boolean accBusy;
 
     public Authentication(String login, String pass) {
         this.login = login;
