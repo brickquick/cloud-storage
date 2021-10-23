@@ -9,8 +9,6 @@ import javafx.stage.WindowEvent;
 
 import java.util.Objects;
 
-//todo
-// активные пользователи
 public class App extends Application {
 
     @Override

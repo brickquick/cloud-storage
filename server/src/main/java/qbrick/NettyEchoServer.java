@@ -15,7 +15,9 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class NettyEchoServer {
 
-    private AuthService authService;
+    private static final int PORT = 8189;
+
+    private final AuthService authService;
 
     public NettyEchoServer() {
 
@@ -42,7 +44,7 @@ public class NettyEchoServer {
                             );
                         }
                     })
-                    .bind(8189)
+                    .bind(PORT)
                     .sync();
             log.debug("Server started...");
             channelFuture.channel().closeFuture().sync(); // block

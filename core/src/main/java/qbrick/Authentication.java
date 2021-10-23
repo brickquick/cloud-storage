@@ -7,6 +7,7 @@ public class Authentication extends Command {
     private final String login;
     private final String pass;
     private boolean authOk = false;
+    private boolean accBusy = true;
 
     public Authentication(String login, String pass) {
         this.login = login;
@@ -15,6 +16,10 @@ public class Authentication extends Command {
 
     public void setAuthOk(boolean authOk) {
         this.authOk = authOk;
+    }
+
+    public void setAccBusy(boolean accBusy) {
+        this.accBusy = accBusy;
     }
 
     @Override

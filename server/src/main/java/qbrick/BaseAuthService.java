@@ -3,6 +3,7 @@ package qbrick;
 import lombok.extern.slf4j.Slf4j;
 
 import java.sql.*;
+import java.util.*;
 
 @Slf4j
 public class BaseAuthService implements AuthService {
@@ -12,6 +13,9 @@ public class BaseAuthService implements AuthService {
     private static Connection connection;
     private static Statement stmt;
     private static ResultSet resultSet;
+
+
+    private static Set<String> activeEntries = new TreeSet<>();
 
     public BaseAuthService() {
         start();
@@ -77,6 +81,7 @@ public class BaseAuthService implements AuthService {
             resultSet = stmt.executeQuery("SELECT login, pass FROM entries");
             while (resultSet.next()) {
                 if (resultSet.getString("login").equals(login) && resultSet.getString("pass").equals(pass)) {
+                    activeEntries.add(login);
                     return true;
                 }
             }
@@ -86,6 +91,21 @@ public class BaseAuthService implements AuthService {
             log.error("Ошибка с базой данных");
             return false;
         }
+    }
+
+    @Override
+    public boolean isAccBusy(String login) {
+        for (String l:  activeEntries) {
+            if (l.equals(login)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public void releaseAcc(String login) {
+        activeEntries.remove(login);
     }
 
     @Override

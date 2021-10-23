@@ -24,7 +24,7 @@ public class ServerFileMessageHandler extends SimpleChannelInboundHandler<Comman
     private boolean authOk = false;
 
     private static int cnt = 0;
-    private String name;
+    private String login;
 
     private volatile long downloadStart = 0;
     private volatile int lastLength = 0;
@@ -38,10 +38,17 @@ public class ServerFileMessageHandler extends SimpleChannelInboundHandler<Comman
     }
 
     @Override
+    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+        super.channelInactive(ctx);
+        this.authService.releaseAcc(login);
+        log.debug("Client '{}' disconnect!", login);
+    }
+
+    @Override
     public void channelActive(ChannelHandlerContext ctx) {
         cnt++;
-        name = "user#" + cnt;
-        log.debug("Client {} connected!", name);
+        login = "user#" + cnt;
+        log.debug("Client {} connected!", login);
         ctx.writeAndFlush(new ConsoleMessage(String.format("[%s]: %s", "Server", "connected successfully")));
         Authentication startAuth = new Authentication(null, null);
         startAuth.setAuthOk(false);
@@ -245,7 +252,7 @@ public class ServerFileMessageHandler extends SimpleChannelInboundHandler<Comman
                 case CONSOLE_MESSAGE:
                     ConsoleMessage consoleMessage = (ConsoleMessage) cmd;
                     String message = consoleMessage.getMsg().trim();
-                    ctx.writeAndFlush(new ConsoleMessage(String.format("[%s]: %s", name, message)));
+                    ctx.writeAndFlush(new ConsoleMessage(String.format("[%s]: %s", login, message)));
 
                     if (message.equals("ls")) {
                         ctx.writeAndFlush(new ConsoleMessage(getFilesInfo()));
@@ -275,11 +282,18 @@ public class ServerFileMessageHandler extends SimpleChannelInboundHandler<Comman
             switch (cmd.getType()) {
                 case AUTHENTICATION:
                     Authentication authentication = (Authentication) cmd;
-                    authOk = authService.isAccExist(authentication.getLogin(), authentication.getPass());
-                    authentication.setAuthOk(authOk);
+                    if (!authService.isAccBusy(authentication.getLogin())) {
+                        authOk = authService.isAccExist(authentication.getLogin(), authentication.getPass());
+                        authentication.setAuthOk(authOk);
+                    }
+                    authentication.setAccBusy(authService.isAccBusy(authentication.getLogin()));
+
                     ctx.writeAndFlush(authentication);
+
                     if (authOk) {
-                        HOME_PATH = Paths.get("server", "root", authentication.getLogin());
+                        login = authentication.getLogin();
+                        log.debug("Client№{} authenticated with login '{}'!", ctx, login);
+                        HOME_PATH = Paths.get("server", "root", login);
                         currentPath = HOME_PATH;
                         if (!Files.exists(currentPath)) {
                             Files.createDirectory(currentPath);

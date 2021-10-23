@@ -158,9 +158,7 @@ public class Controller implements Initializable {
     }
 
     private void connectToNet() {
-        Platform.runLater(() -> {
-            authForm = new AuthForm();
-        });
+        Platform.runLater(() -> authForm = new AuthForm());
 
         net = new Net(cmd -> {
             switch (cmd.getType()) {
@@ -194,10 +192,13 @@ public class Controller implements Initializable {
                                     authForm.getLabelRegPass2().setText("Пароль пуст:");
                                 }
                             });
-                            if (!authForm.getLoginAuthField().getText().equals("") &&
+                            if (authentication.isAccBusy()) {
+                                authForm.getTopLabelAuth().setTextFill(Color.color(1, 0, 0));
+                                authForm.getTopLabelAuth().setText("Учетная запись уже используется");
+                            } else if (!authForm.getLoginAuthField().getText().equals("") &&
                                     !authForm.getPassAuthField().getText().equals("")) {
                                 authForm.getTopLabelAuth().setTextFill(Color.color(1, 0, 0));
-                                authForm.getTopLabelAuth().setText("Неверные логин или пароль:");
+                                authForm.getTopLabelAuth().setText("Неверные логин или пароль");
                             }
                             authForm.getPassAuthField().setOnAction(action -> {
                                 if (!authForm.getPassAuthField().getText().equals("")) {
@@ -227,10 +228,10 @@ public class Controller implements Initializable {
                     Platform.runLater(() -> {
                         if (reg.isLoginBusy()) {
                             authForm.getTopLabelReg().setTextFill(Color.color(1, 0, 0));
-                            authForm.getTopLabelReg().setText("Логин уже занят:");
+                            authForm.getTopLabelReg().setText("Логин уже занят");
                         } else {
                             authForm.getTopLabelAuth().setTextFill(Color.color(0, 0.5, 0));
-                            authForm.getTopLabelAuth().setText("Регистрация прошла успешно:");
+                            authForm.getTopLabelAuth().setText("Регистрация прошла успешно");
                             authForm.getAuthLink().fire();
                         }
                     });
