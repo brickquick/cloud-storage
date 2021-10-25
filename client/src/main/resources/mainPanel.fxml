@@ -21,10 +21,11 @@
 
         <VBox alignment="CENTER" spacing="50.0">
             <Button fx:id="copyBtn" alignment="BOTTOM_CENTER" focusTraversable="false" onAction="#copyBtnAction"
-                    prefHeight="56" prefWidth="245" text="Копировать" textFill="WHITE" HBox.hgrow="ALWAYS" />
-            <Button focusTraversable="false" maxWidth="Infinity" onAction="#renameBtnAction" text="Переименовать" HBox.hgrow="ALWAYS" />
-            <Button focusTraversable="false" maxWidth="Infinity" onAction="#createDirBtnAction" text="Создать папку" HBox.hgrow="ALWAYS" />
-            <Button focusTraversable="false" maxWidth="Infinity" onAction="#deleteBtnAction" text="Удалить" HBox.hgrow="ALWAYS" />
+                    prefHeight="56" prefWidth="245" textFill="WHITE" HBox.hgrow="ALWAYS" />
+            <Button fx:id="renameBtn" focusTraversable="false" maxWidth="Infinity" onAction="#renameBtnAction" text="Переименовать" HBox.hgrow="ALWAYS" />
+            <Button fx:id="cdirBtn" focusTraversable="false" maxWidth="Infinity" onAction="#createDirBtnAction" text="Создать папку" HBox.hgrow="ALWAYS" />
+            <Button fx:id="deleteBtn" focusTraversable="false" maxWidth="Infinity" onAction="#deleteBtnAction" text="Удалить" HBox.hgrow="ALWAYS" />
+            <Label fx:id="labelBtns" textFill="white"/>
             <padding>
                 <Insets bottom="5.0" left="5.0" right="5.0" top="100.0" />
             </padding>

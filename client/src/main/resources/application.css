@@ -125,7 +125,7 @@
 }
 
 .copyBtn.button {
-    -fx-background-color: black;
+    -fx-background-color: transparent;
     -fx-background-image: url(assets/copyBtn.png);
     -fx-background-size: stretch;
 }
@@ -139,7 +139,7 @@
 }
 
 .copyBtnD.button {
-    -fx-background-color: black;
+    -fx-background-color: transparent;
     -fx-background-image: url(assets/copyBtn.png);
     -fx-background-size: stretch;
 }
@@ -153,7 +153,7 @@
 }
 
 .copyBtnU.button {
-    -fx-background-color: black;
+    -fx-background-color: transparent;
     -fx-background-image: url(assets/copyBtn.png);
     -fx-background-size: stretch;
 }

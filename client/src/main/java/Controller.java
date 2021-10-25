@@ -7,7 +7,10 @@ import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.scene.media.Media;
+import javafx.scene.media.MediaPlayer;
 import javafx.scene.paint.Color;
+import javafx.util.Duration;
 import lombok.extern.slf4j.Slf4j;
 import qbrick.*;
 
@@ -29,7 +32,9 @@ import java.util.ResourceBundle;
 public class Controller implements Initializable {
 
     @FXML
-    public Button copyBtn;
+    public Button copyBtn, deleteBtn, btnHome, btnUp, renameBtn, cdirBtn;
+    @FXML
+    public Label labelBtns;
 
     @FXML
     VBox clientPanel;
@@ -47,6 +52,9 @@ public class Controller implements Initializable {
     public ListView<String> listView;
     @FXML
     public TextField input;
+
+    private final Media soundClick = new Media(new File("client/src/main/resources/sounds/ClickH3.mp3").toURI().toString());
+    private MediaPlayer mediaPlayer;
 
     private Net net;
     private boolean authOk = false;
@@ -71,6 +79,64 @@ public class Controller implements Initializable {
     }
 
     private void render() {
+        ClientPanelController cpc = (ClientPanelController) clientPanel.getProperties().get("ctrl");
+        mediaPlayer = new MediaPlayer(soundClick);
+
+        copyBtn.setOnMouseEntered(event -> labelBtns.setText("Копировать"));
+        copyBtn.setOnMouseExited(event -> labelBtns.setText(""));
+        renameBtn.setOnMouseEntered(event -> labelBtns.setText("Переименовать"));
+        renameBtn.setOnMouseExited(event -> labelBtns.setText(""));
+        cdirBtn.setOnMouseEntered(event -> labelBtns.setText("Создать папку"));
+        cdirBtn.setOnMouseExited(event -> labelBtns.setText(""));
+        deleteBtn.setOnMouseEntered(event -> labelBtns.setText("Удалить"));
+        deleteBtn.setOnMouseExited(event -> labelBtns.setText(""));
+        btnHome.setOnMouseEntered(event -> labelBtns.setText("Стартовая страница"));
+        btnHome.setOnMouseExited(event -> labelBtns.setText(""));
+        btnUp.setOnMouseEntered(event -> labelBtns.setText("Вверх"));
+        btnUp.setOnMouseExited(event -> labelBtns.setText(""));
+        cpc.btnHome.setOnMouseEntered(event -> labelBtns.setText("Стартовая страница"));
+        cpc.btnHome.setOnMouseExited(event -> labelBtns.setText(""));
+        cpc.btnUp.setOnMouseEntered(event -> labelBtns.setText("Вверх"));
+        cpc.btnUp.setOnMouseExited(event -> labelBtns.setText(""));
+
+        copyBtn.getStyleClass().add("copyBtn");
+
+        cpc.getFilesTable().setOnMouseClicked(event -> {
+            if (event.getClickCount() == 2) {
+                cpc.pathIn();
+            }
+            if (cpc.getFilesTable().isFocused() && cpc.getFilesTable().getSelectionModel().getSelectedItem() != null) {
+                copyBtn.getStyleClass().removeIf(style -> style.equals("copyBtnD"));
+                copyBtn.getStyleClass().removeIf(style -> style.equals("copyBtn"));
+                copyBtn.getStyleClass().add("copyBtnU");
+            } else {
+                copyBtn.getStyleClass().removeIf(style -> style.equals("copyBtnD"));
+                copyBtn.getStyleClass().removeIf(style -> style.equals("copyBtnU"));
+                copyBtn.getStyleClass().add("copyBtn");
+            }
+        });
+
+        serverFilesTable.setOnMouseClicked(event -> {
+            if (event.getClickCount() == 2) {
+                try {
+                    if (serverFilesTable.getSelectionModel().getSelectedItem().getType() == FileInfo.FileType.DIRECTORY) {
+                        net.sendCmd(new PathInRequest(serverFilesTable.getSelectionModel().getSelectedItem().getFilename()));
+                    }
+                } catch (Exception ignored) {
+                }
+            }
+            if (serverFilesTable.isFocused() && serverFilesTable.getSelectionModel().getSelectedItem() != null) {
+                copyBtn.getStyleClass().removeIf(style -> style.equals("copyBtnU"));
+                copyBtn.getStyleClass().removeIf(style -> style.equals("copyBtn"));
+                copyBtn.getStyleClass().removeAll();
+                copyBtn.getStyleClass().add("copyBtnD");
+            } else {
+                copyBtn.getStyleClass().removeIf(style -> style.equals("copyBtnD"));
+                copyBtn.getStyleClass().removeIf(style -> style.equals("copyBtnU"));
+                copyBtn.getStyleClass().add("copyBtn");
+            }
+        });
+
         TableColumn<FileInfo, String> fileTypeColumn = new TableColumn<>();
         fileTypeColumn.setCellValueFactory(param -> new SimpleStringProperty(param.getValue().getType().getName()));
         fileTypeColumn.setPrefWidth(24);
@@ -115,46 +181,7 @@ public class Controller implements Initializable {
         serverFilesTable.getColumns().addAll(fileTypeColumn, filenameColumn, fileSizeColumn, fileDateColumn);
         serverFilesTable.getSortOrder().add(fileTypeColumn);
 
-        copyBtn.getStyleClass().add("copyBtn");
-
         hbox.getChildren().remove(console);
-
-        ClientPanelController cpc = (ClientPanelController) clientPanel.getProperties().get("ctrl");
-        cpc.getFilesTable().setOnMouseClicked(event -> {
-            if (event.getClickCount() == 2) {
-                cpc.pathIn();
-            }
-            if (cpc.getFilesTable().isFocused() && cpc.getFilesTable().getSelectionModel().getSelectedItem() != null) {
-                copyBtn.getStyleClass().removeIf(style -> style.equals("copyBtnD"));
-                copyBtn.getStyleClass().removeIf(style -> style.equals("copyBtn"));
-                copyBtn.getStyleClass().add("copyBtnU");
-            } else {
-                copyBtn.getStyleClass().removeIf(style -> style.equals("copyBtnD"));
-                copyBtn.getStyleClass().removeIf(style -> style.equals("copyBtnU"));
-                copyBtn.getStyleClass().add("copyBtn");
-            }
-        });
-
-        serverFilesTable.setOnMouseClicked(event -> {
-            if (event.getClickCount() == 2) {
-                try {
-                    if (serverFilesTable.getSelectionModel().getSelectedItem().getType() == FileInfo.FileType.DIRECTORY) {
-                        net.sendCmd(new PathInRequest(serverFilesTable.getSelectionModel().getSelectedItem().getFilename()));
-                    }
-                } catch (Exception ignored) {
-                }
-            }
-            if (serverFilesTable.isFocused() && serverFilesTable.getSelectionModel().getSelectedItem() != null) {
-                copyBtn.getStyleClass().removeIf(style -> style.equals("copyBtnU"));
-                copyBtn.getStyleClass().removeIf(style -> style.equals("copyBtn"));
-                copyBtn.getStyleClass().removeAll();
-                copyBtn.getStyleClass().add("copyBtnD");
-            } else {
-                copyBtn.getStyleClass().removeIf(style -> style.equals("copyBtnD"));
-                copyBtn.getStyleClass().removeIf(style -> style.equals("copyBtnU"));
-                copyBtn.getStyleClass().add("copyBtn");
-            }
-        });
     }
 
     private void connectToNet() {
@@ -395,20 +422,23 @@ public class Controller implements Initializable {
     }
 
     public void copyBtnAction() {
+        mediaPlayer.seek(new Duration(0));
+        mediaPlayer.play();
         ClientPanelController clientPC = (ClientPanelController) clientPanel.getProperties().get("ctrl");
 
         if (net != null && net.isConnected()) {
             if (authOk) {
                 try {
-                    if (getSelectedFilename() == null && clientPC.getSelectedFilename() == null || clientPC.getSelectedType().equals("D")) {
+                    if (getSelectedFilename() == null && clientPC.getSelectedFilename() == null) {
+                        Alert alert = new Alert(Alert.AlertType.ERROR, "Ни один файл не был выбран", ButtonType.OK);
+                        alert.showAndWait();
+                        return;
+                    } else if (clientPC.getSelectedType().equals("D")) {
                         Alert alert = new Alert(Alert.AlertType.ERROR, "Ни один файл не был выбран", ButtonType.OK);
                         alert.showAndWait();
                         return;
                     }
-                } catch (NullPointerException e) {
-                    Alert alert = new Alert(Alert.AlertType.ERROR, "Ни один файл не был выбран", ButtonType.OK);
-                    alert.showAndWait();
-                    return;
+                } catch (NullPointerException ignored) {
                 }
 
                 try {
@@ -470,6 +500,8 @@ public class Controller implements Initializable {
     }
 
     public void renameBtnAction() {
+        mediaPlayer.seek(new Duration(0));
+        mediaPlayer.play();
         ClientPanelController cpc = (ClientPanelController) clientPanel.getProperties().get("ctrl");
 
         try {
@@ -534,6 +566,8 @@ public class Controller implements Initializable {
     }
 
     public void createDirBtnAction() {
+        mediaPlayer.seek(new Duration(0));
+        mediaPlayer.play();
         ClientPanelController clientPC = (ClientPanelController) clientPanel.getProperties().get("ctrl");
 
         if (!clientPC.isFocusedTable() && !serverFilesTable.isFocused() && !serverPathField.isFocused()) {
@@ -589,6 +623,8 @@ public class Controller implements Initializable {
     }
 
     public void deleteBtnAction() {
+        mediaPlayer.seek(new Duration(0));
+        mediaPlayer.play();
         ClientPanelController cpc = (ClientPanelController) clientPanel.getProperties().get("ctrl");
 
         try {
@@ -685,12 +721,16 @@ public class Controller implements Initializable {
     }
 
     public void btnPathUpAction() {
+        mediaPlayer.seek(new Duration(0));
+        mediaPlayer.play();
         if (Objects.requireNonNull(net).isConnected() && authOk) {
             net.sendCmd(new PathUpRequest());
         }
     }
 
     public void showConsole() {
+        mediaPlayer.seek(new Duration(0));
+        mediaPlayer.play();
         console.setVisible(!console.isVisible());
         if (console.isVisible()) {
             console.setPrefWidth(300);
@@ -719,18 +759,24 @@ public class Controller implements Initializable {
     }
 
     public void btnHomePathAction() {
+        mediaPlayer.seek(new Duration(0));
+        mediaPlayer.play();
         if (Objects.requireNonNull(net).isConnected() && authOk) {
             net.sendCmd(new ListRequest());
         }
     }
 
     public void connectToServer() {
+        mediaPlayer.seek(new Duration(0));
+        mediaPlayer.play();
         if (net == null || !net.isConnected() || !authOk) {
             connectToNet();
         }
     }
 
     public void disconnectFromServer() {
+        mediaPlayer.seek(new Duration(0));
+        mediaPlayer.play();
         try {
             if (net == null) {
                 authOk = false;
@@ -752,6 +798,8 @@ public class Controller implements Initializable {
     }
 
     public void btnExitAction(ActionEvent actionEvent) {
+        mediaPlayer.seek(new Duration(0));
+        mediaPlayer.play();
         if (net != null) {
             if (net.isConnected()) {
                 net.closeChannel();
