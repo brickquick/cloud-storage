@@ -7,10 +7,7 @@ import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
-import javafx.scene.media.Media;
-import javafx.scene.media.MediaPlayer;
 import javafx.scene.paint.Color;
-import javafx.util.Duration;
 import lombok.extern.slf4j.Slf4j;
 import qbrick.*;
 
@@ -53,8 +50,7 @@ public class Controller implements Initializable {
     @FXML
     public TextField input;
 
-    private final Media soundClick = new Media(new File("client/src/main/resources/sounds/ClickH3.mp3").toURI().toString());
-    private MediaPlayer mediaPlayer;
+    private SoundManager soundManager;
 
     private Net net;
     private boolean authOk = false;
@@ -79,8 +75,8 @@ public class Controller implements Initializable {
     }
 
     private void render() {
+        soundManager = new SoundManager();
         ClientPanelController cpc = (ClientPanelController) clientPanel.getProperties().get("ctrl");
-        mediaPlayer = new MediaPlayer(soundClick);
 
         copyBtn.setOnMouseEntered(event -> labelBtns.setText("Копировать"));
         copyBtn.setOnMouseExited(event -> labelBtns.setText(""));
@@ -422,8 +418,7 @@ public class Controller implements Initializable {
     }
 
     public void copyBtnAction() {
-        mediaPlayer.seek(new Duration(0));
-        mediaPlayer.play();
+        soundManager.playFirst();
         ClientPanelController clientPC = (ClientPanelController) clientPanel.getProperties().get("ctrl");
 
         if (net != null && net.isConnected()) {
@@ -500,8 +495,7 @@ public class Controller implements Initializable {
     }
 
     public void renameBtnAction() {
-        mediaPlayer.seek(new Duration(0));
-        mediaPlayer.play();
+        soundManager.playFirst();
         ClientPanelController cpc = (ClientPanelController) clientPanel.getProperties().get("ctrl");
 
         try {
@@ -566,8 +560,7 @@ public class Controller implements Initializable {
     }
 
     public void createDirBtnAction() {
-        mediaPlayer.seek(new Duration(0));
-        mediaPlayer.play();
+        soundManager.playFirst();
         ClientPanelController clientPC = (ClientPanelController) clientPanel.getProperties().get("ctrl");
 
         if (!clientPC.isFocusedTable() && !serverFilesTable.isFocused() && !serverPathField.isFocused()) {
@@ -623,8 +616,7 @@ public class Controller implements Initializable {
     }
 
     public void deleteBtnAction() {
-        mediaPlayer.seek(new Duration(0));
-        mediaPlayer.play();
+        soundManager.playFirst();
         ClientPanelController cpc = (ClientPanelController) clientPanel.getProperties().get("ctrl");
 
         try {
@@ -721,16 +713,14 @@ public class Controller implements Initializable {
     }
 
     public void btnPathUpAction() {
-        mediaPlayer.seek(new Duration(0));
-        mediaPlayer.play();
+        soundManager.playFirst();
         if (Objects.requireNonNull(net).isConnected() && authOk) {
             net.sendCmd(new PathUpRequest());
         }
     }
 
     public void showConsole() {
-        mediaPlayer.seek(new Duration(0));
-        mediaPlayer.play();
+        soundManager.playFirst();
         console.setVisible(!console.isVisible());
         if (console.isVisible()) {
             console.setPrefWidth(300);
@@ -759,24 +749,21 @@ public class Controller implements Initializable {
     }
 
     public void btnHomePathAction() {
-        mediaPlayer.seek(new Duration(0));
-        mediaPlayer.play();
+        soundManager.playFirst();
         if (Objects.requireNonNull(net).isConnected() && authOk) {
             net.sendCmd(new ListRequest());
         }
     }
 
     public void connectToServer() {
-        mediaPlayer.seek(new Duration(0));
-        mediaPlayer.play();
+        soundManager.playFirst();
         if (net == null || !net.isConnected() || !authOk) {
             connectToNet();
         }
     }
 
     public void disconnectFromServer() {
-        mediaPlayer.seek(new Duration(0));
-        mediaPlayer.play();
+        soundManager.playFirst();
         try {
             if (net == null) {
                 authOk = false;
@@ -798,8 +785,7 @@ public class Controller implements Initializable {
     }
 
     public void btnExitAction(ActionEvent actionEvent) {
-        mediaPlayer.seek(new Duration(0));
-        mediaPlayer.play();
+        soundManager.playFirst();
         if (net != null) {
             if (net.isConnected()) {
                 net.closeChannel();

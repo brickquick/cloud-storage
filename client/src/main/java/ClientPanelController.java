@@ -35,8 +35,7 @@ public class ClientPanelController implements Initializable {
     @FXML
     TextField pathField;
 
-    private final Media soundClick = new Media(new File("client/src/main/resources/sounds/ClickH3.mp3").toURI().toString());
-    private MediaPlayer mediaPlayer;
+    private SoundManager soundManager;
 
     private WatchService watchService;
 
@@ -45,7 +44,7 @@ public class ClientPanelController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        mediaPlayer = new MediaPlayer(soundClick);
+        soundManager = new SoundManager();
         currentPath = ROOT_DIR;
         TableColumn<FileInfo, String> fileTypeColumn = new TableColumn<>();
         fileTypeColumn.setCellValueFactory(param -> new SimpleStringProperty(param.getValue().getType().getName()));
@@ -108,7 +107,7 @@ public class ClientPanelController implements Initializable {
                             System.out.println(watchedPath);
                             log.debug("kind {}, context {}", event.kind(), event.context());
                             Platform.runLater(() -> updateList(currentPath));
-                            Thread.sleep(1000);
+                            Thread.sleep(500);
                         }
                         key.reset();
                     }
@@ -149,16 +148,14 @@ public class ClientPanelController implements Initializable {
     }
 
     public void selectDiskAction(ActionEvent actionEvent) {
-        mediaPlayer.seek(new Duration(0));
-        mediaPlayer.play();
+        soundManager.playFirst();
         ComboBox<String> element = (ComboBox<String>) actionEvent.getSource();
         updatePath(Paths.get(element.getSelectionModel().getSelectedItem()));
         updateList(Paths.get(element.getSelectionModel().getSelectedItem()));
     }
 
     public void btnPathUpAction() {
-        mediaPlayer.seek(new Duration(0));
-        mediaPlayer.play();
+        soundManager.playFirst();
         Path upperPath = getCurrentPath().getParent();
         if (upperPath != null) {
             updatePath(upperPath);
@@ -167,16 +164,14 @@ public class ClientPanelController implements Initializable {
     }
 
     public void btnHomePathAction(ActionEvent actionEvent) {
-        mediaPlayer.seek(new Duration(0));
-        mediaPlayer.play();
+        soundManager.playFirst();
         currentPath = ROOT_DIR;
         updatePath(currentPath);
         updateList(currentPath);
     }
 
     public void pathIn() {
-        mediaPlayer.seek(new Duration(0));
-        mediaPlayer.play();
+        soundManager.playFirst();
         try {
             Path path = Paths.get(pathField.getText()).resolve(filesTable.getSelectionModel().getSelectedItem().getFilename());
             if (Files.isDirectory(path)) {

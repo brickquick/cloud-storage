@@ -65,7 +65,7 @@ public class ServerFileMessageHandler extends SimpleChannelInboundHandler<Comman
                             try {
                                 ctx.writeAndFlush(new PathResponse(currentPath.toString()));
                                 ctx.writeAndFlush(new ListResponse(currentPath));
-                                Thread.sleep(1000);
+                                Thread.sleep(500);
                             } catch (Exception e) {
                                 e.printStackTrace();
                             }
